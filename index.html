@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<script src="https://unpkg.com/@azure/msal-browser@3.10.0/lib/msal-browser.min.js"></script>
 <style>
 :root {
   --brand:#1a3a5c; --brand-mid:#245080; --brand-light:#e8f0f8;
@@ -1023,23 +1023,29 @@ async function syncData(){
 
 var _msalInstance = null;
 async function getToken(){
-  if(!window.msal){ console.warn('MSAL not loaded'); return null; }
+  if(!window.msalBrowser && !window.msal){ console.warn('MSAL not loaded'); return null; }
   if(!CFG.clientId || !CFG.tenantId){ console.warn('Missing Client ID or Tenant ID'); return null; }
   try{
+    var msalLib = window.msalBrowser || window.msal;
     if(!_msalInstance){
-      _msalInstance = new msal.PublicClientApplication({
-        auth:{ clientId:CFG.clientId, authority:'https://login.microsoftonline.com/'+CFG.tenantId, redirectUri: window.location.href.split('?')[0] },
+      _msalInstance = new msalLib.PublicClientApplication({
+        auth:{
+          clientId: CFG.clientId,
+          authority: 'https://login.microsoftonline.com/' + CFG.tenantId,
+          redirectUri: window.location.href.split('?')[0].split('#')[0]
+        },
         cache:{ cacheLocation:'sessionStorage', storeAuthStateInCookie:true }
       });
       await _msalInstance.initialize();
     }
-    var req={scopes:['Sites.ReadWrite.All','User.Read']};
-    var accounts=_msalInstance.getAllAccounts();
+    var req = { scopes:['Sites.ReadWrite.All','User.Read'] };
+    var accounts = _msalInstance.getAllAccounts();
     var r;
-    if(accounts.length>0){
-      r=await _msalInstance.acquireTokenSilent({...req, account:accounts[0]}).catch(()=>_msalInstance.acquireTokenPopup(req));
+    if(accounts.length > 0){
+      r = await _msalInstance.acquireTokenSilent({...req, account:accounts[0]})
+            .catch(()=>_msalInstance.acquireTokenPopup(req));
     } else {
-      r=await _msalInstance.acquireTokenPopup(req);
+      r = await _msalInstance.acquireTokenPopup(req);
     }
     return r.accessToken;
   } catch(e){ console.warn('MSAL error:',e); return null; }
@@ -1062,7 +1068,7 @@ async function findItem(tok,sid,lid,reportId){
 async function testSP(){
   var el=document.getElementById('sp-status'); el.textContent='Testing... (a Microsoft login popup may appear)'; el.style.color='var(--text-soft)';
   CFG.spSite=document.getElementById('cfg-spsite').value; CFG.clientId=document.getElementById('cfg-clientid').value; CFG.tenantId=document.getElementById('cfg-tenantid').value;
-  if(!window.msal){ el.textContent='✗ MSAL library not loaded. Check your internet connection and reload the page.'; el.style.color='var(--danger)'; return; }
+  if(!window.msalBrowser && !window.msal){ el.textContent='✗ MSAL library not loaded. Check your internet connection and reload the page.'; el.style.color='var(--danger)'; return; }
   if(!CFG.clientId || !CFG.tenantId){ el.textContent='✗ Please enter both Client ID and Tenant ID first, then save Settings.'; el.style.color='var(--danger)'; return; }
   _msalInstance=null; // reset so it picks up new IDs
   try{

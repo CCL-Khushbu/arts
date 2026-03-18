@@ -200,7 +200,7 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
     <div class="topbar-sub" id="topbar-sub">Overview of all action requests</div>
   </div>
   <div class="topbar-actions">
-    <button class="btn btn-accent" onclick="nav('new',null)" id="btn-new">+ New Report</button>
+    <button class="btn btn-accent" onclick="currentId=null;nav('new',null)" id="btn-new">+ New Report</button>
     <button class="btn" onclick="syncData()" title="Sync SharePoint">↻ Sync</button>
   </div>
 </div>
@@ -271,15 +271,15 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
     <div class="ftab" onclick="ftab('problem',this)">Problem / Assignment</div>
     <div class="ftab" onclick="ftab('action',this)">Corrective Action</div>
     <div class="ftab" onclick="ftab('effectiveness',this)">Effectiveness</div>
+    <div class="ftab" onclick="ftab('fishbone',this)">🐟 Fishbone Analysis</div>
     <div class="ftab" onclick="ftab('closure',this)">Closure</div>
   </div>
 
   <!-- ORDER INFO -->
   <div class="fpanel active card" id="fp-order">
     <div class="fgrid">
-      <div class="fg"><label>System</label><select id="r-system"><option>Ross GGC Company 1</option><option>Focus</option><option>Ross Royal Moulding</option><option>RPI/Solucor</option></select></div>
       <div class="fg"><label>Customer Name</label><input type="text" id="r-customer" placeholder="e.g. Northern Cables Inc"></div>
-      <div class="fg"><label>Product Code</label><input type="text" id="r-product" placeholder="e.g. 67441-BLK"></div>
+      <div class="fg"><label>Product Stock Code</label><input type="text" id="r-product" placeholder="e.g. 67441-BLK"></div>
       <div class="fg"><label>Product Description</label><input type="text" id="r-prodesc"></div>
       <div class="fg"><label>Order #</label><input type="text" id="r-order"></div>
       <div class="fg"><label>Lot #</label><input type="text" id="r-lot" value="NA"></div>
@@ -288,32 +288,51 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
       <div class="fg"><label>Ship Date</label><input type="date" id="r-shipdate"></div>
       <div class="fg"><label>Ship To</label><input type="text" id="r-shipto"></div>
       <div class="fg"><label>Cust PO #</label><input type="text" id="r-custpo" value="NA"></div>
-      <div class="fg"><label>Manufacturing Plant</label><select id="r-plant"><option>Axiall-Concord</option><option>Ross Royal Moulding</option><option>RPI/Solucor</option><option>Other</option></select></div>
-      <div class="fg"><label>Plant Code</label><input type="text" id="r-plantcode" placeholder="e.g. 1F"></div>
-      <div class="fg"><label>Division</label><input type="text" id="r-division"></div>
-      <div class="fg"><label>Container Type</label><select id="r-container"><option>Hopper Truck</option><option>Bulk Bag</option><option>Gaylord</option><option>Box</option></select></div>
+      <div class="fg">
+        <label>Container Type</label>
+        <input type="text" id="r-container" list="container-options" placeholder="Select or type...">
+        <datalist id="container-options"><option>Hopper Truck</option><option>Bulk Bag</option><option>Gaylord</option><option>Box</option></datalist>
+      </div>
       <div class="fg"><label>Container #</label><input type="text" id="r-containernum" value="NA"></div>
-      <div class="fg"><label>CSR</label><input type="text" id="r-csr"></div>
-      <div class="fg"><label>TSE</label><input type="text" id="r-tse"></div>
-      <div class="fg"><label>Dev. Chemist</label><input type="text" id="r-chemist" value="NA"></div>
+      <div class="fg"><label>CSR</label><input type="text" id="r-csr" placeholder="Customer Service Rep"></div>
+      <div class="fg"><label>TSE</label><input type="text" id="r-tse" placeholder="Technical Service Engineer"></div>
       <div class="fg"><label>Salesman</label><input type="text" id="r-salesman"></div>
-      <div class="fg"><label>PIC Code</label><select id="r-pic"><option>CON</option><option>IPC</option><option>NA</option></select></div>
-      <div class="fg"><label>Application Code</label><select id="r-appcode"><option>IPC</option><option>Wire &amp; Cable</option><option>Pipe</option><option>Other</option></select></div>
-      <div class="fg"><label>Prod Rejected?</label><select id="r-rejected"><option>Yes</option><option>No</option><option>Partial</option></select></div>
+      <div class="fg"><label>Application Code</label><input type="text" id="r-appcode" placeholder="Enter application code"></div>
+      <div class="fg">
+        <label>Product Rejected?</label>
+        <input type="text" id="r-rejected" list="rejected-options" placeholder="Select or type...">
+        <datalist id="rejected-options"><option>Yes</option><option>No</option><option>Partial</option></datalist>
+      </div>
       <div class="fg"><label>Other Notes</label><input type="text" id="r-other" value="NA"></div>
     </div>
+    <!-- hidden fields kept for data compatibility -->
+    <input type="hidden" id="r-system" value="Concord Compounding">
+    <input type="hidden" id="r-plant" value="Concord Compounding">
+    <input type="hidden" id="r-plantcode" value="">
+    <input type="hidden" id="r-division" value="">
+    <input type="hidden" id="r-chemist" value="NA">
+    <input type="hidden" id="r-pic" value="NA">
   </div>
 
   <!-- PROBLEM -->
   <div class="fpanel card" id="fp-problem">
     <div class="fgrid">
       <div class="fg full"><label>Problem Description *</label><textarea id="r-probdesc" rows="5" placeholder="Describe the nonconformance in detail..." oninput="aiRootCause()"></textarea></div>
-      <div class="fg"><label>Problem Category</label><select id="r-probcat"><option value="">— Select —</option><option>Contamination</option><option>Dimensional</option><option>Color</option><option>Physical Properties</option><option>Processing</option><option>Packaging</option><option>Other</option></select></div>
-      <div class="fg"><label>Problem ID Code</label><select id="r-probcode"><option>M3</option><option>M1</option><option>C1</option><option>P2</option><option>D1</option></select></div>
+      <div class="fg">
+        <label>Problem Category</label>
+        <input type="text" id="r-probcat" list="probcat-options" placeholder="Select or type...">
+        <datalist id="probcat-options"><option>Contamination</option><option>Dimensional</option><option>Color</option><option>Physical Properties</option><option>Processing</option><option>Packaging</option><option>Other</option></datalist>
+      </div>
       <div class="fg"><label>Assigned To</label><input type="text" id="r-assignedname"></div>
-      <div class="fg"><label>Department</label><select id="r-dept"><option value="">— Select —</option><option>Quality</option><option>Production</option><option>Maintenance</option><option>Engineering</option><option>Logistics</option></select></div>
+      <div class="fg">
+        <label>Department</label>
+        <input type="text" id="r-dept" list="dept-options" placeholder="Select or type...">
+        <datalist id="dept-options"><option>Quality</option><option>Production</option><option>Maintenance</option><option>Engineering</option><option>Logistics</option></datalist>
+      </div>
       <div class="fg full"><label>Assignee Comments</label><textarea id="r-comments" rows="3"></textarea></div>
     </div>
+    <!-- hidden for data compatibility -->
+    <input type="hidden" id="r-probcode" value="">
     <div class="ai-panel" id="ai-rc-panel" style="display:none">
       <div class="ai-header"><div class="ai-dot"></div><div class="ai-label">AI — Suggested Root Causes</div></div>
       <div class="ai-body" id="ai-rc-body"><span class="spin"></span> Analyzing...</div>
@@ -324,18 +343,23 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
   <!-- CORRECTIVE ACTION -->
   <div class="fpanel card" id="fp-action">
     <div class="fgrid">
-      <div class="fg"><label>Corrective Action Party</label><select id="r-caparty"><option value="">— Select —</option><option>Maintenance</option><option>Quality</option><option>Production</option><option>Engineering</option><option>Supplier</option></select></div>
+      <div class="fg">
+        <label>Corrective Action Party</label>
+        <input type="text" id="r-caparty" list="caparty-options" placeholder="Select or type...">
+        <datalist id="caparty-options"><option>Maintenance</option><option>Quality</option><option>Production</option><option>Engineering</option><option>Supplier</option></datalist>
+      </div>
       <div class="fg"><label>Dept. Manager</label><input type="text" id="r-deptmgr"></div>
       <div class="fg full"><label>Summary of Corrective Action</label><textarea id="r-casummary" rows="6" placeholder="Describe what corrective action was taken..."></textarea></div>
       <div class="fg"><label>Root Cause</label><input type="text" id="r-rootcause"></div>
       <div class="fg"><label>Justification</label><input type="text" id="r-justification"></div>
-      <div class="fg"><label>PIC Description</label><input type="text" id="r-picdesc"></div>
       <div class="fg"><label>Dept. Mgr Accept Date</label><input type="date" id="r-mgracceptdate"></div>
       <div class="fg"><label>Implementation Date</label><input type="date" id="r-impldate"></div>
       <div class="fg"><label>Customer Notification Date</label><input type="date" id="r-custnotifydate"></div>
       <div class="fg" style="flex-direction:row;align-items:center;gap:8px;padding-top:4px"><input type="checkbox" id="r-mgraccepted" style="width:16px;height:16px"><label for="r-mgraccepted" style="margin:0;font-size:13px">Dept. Manager Accepted</label></div>
       <div class="fg" style="flex-direction:row;align-items:center;gap:8px;padding-top:4px"><input type="checkbox" id="r-sendtomgr" style="width:16px;height:16px"><label for="r-sendtomgr" style="margin:0;font-size:13px">Send to Dept. Manager</label></div>
     </div>
+    <!-- hidden for data compatibility -->
+    <input type="hidden" id="r-picdesc" value="">
     <div class="ai-panel">
       <div class="ai-header"><div class="ai-dot"></div><div class="ai-label">AI — Draft Corrective Action</div></div>
       <div class="ai-body" id="ai-ca-body" style="color:var(--text-soft);font-style:italic">Fill the problem description first, then click below.</div>
@@ -349,10 +373,44 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
   <!-- EFFECTIVENESS -->
   <div class="fpanel card" id="fp-effectiveness">
     <div class="fgrid">
-      <div class="fg"><label>Evaluation Party / Group</label><select id="r-evalparty"><option value="">— Select —</option><option>Quality Dept</option><option>Plant Manager</option><option>Customer</option><option>External Auditor</option></select></div>
-      <div class="fg"><label>Corrective Action Effectiveness</label><select id="r-effectiveness"><option>Completely</option><option>Partially</option><option>Not Effective</option><option>Too Early to Evaluate</option></select></div>
+      <div class="fg">
+        <label>Evaluation Party / Group</label>
+        <input type="text" id="r-evalparty" list="evalparty-options" placeholder="Select or type...">
+        <datalist id="evalparty-options"><option>Quality Dept</option><option>Plant Manager</option><option>Customer</option><option>External Auditor</option></datalist>
+      </div>
+      <div class="fg">
+        <label>Corrective Action Effectiveness</label>
+        <input type="text" id="r-effectiveness" list="effectiveness-options" placeholder="Select or type...">
+        <datalist id="effectiveness-options"><option>Completely</option><option>Partially</option><option>Not Effective</option><option>Too Early to Evaluate</option></datalist>
+      </div>
       <div class="fg"><label>Evaluation Date</label><input type="date" id="r-evaldate"></div>
-      <div class="fg"><label>Indicator for Measuring Effectiveness</label><select id="r-indicator"><option>No recurrence of problem</option><option>Customer satisfaction survey</option><option>Internal audit pass</option><option>SPC data trending</option><option>Zero repeat NCRs in 6 months</option></select></div>
+      <div class="fg">
+        <label>Indicator for Measuring Effectiveness</label>
+        <input type="text" id="r-indicator" list="indicator-options" placeholder="Select or type...">
+        <datalist id="indicator-options"><option>No recurrence of problem</option><option>Customer satisfaction survey</option><option>Internal audit pass</option><option>SPC data trending</option><option>Zero repeat NCRs in 6 months</option></datalist>
+      </div>
+    </div>
+  </div>
+
+  <!-- FISHBONE -->
+  <div class="fpanel card" id="fp-fishbone">
+    <div style="margin-bottom:14px">
+      <div style="font-size:14px;font-weight:600;color:var(--brand);margin-bottom:4px">🐟 AI Fishbone (Ishikawa) Root Cause Analysis</div>
+      <div style="font-size:12px;color:var(--text-soft)">Based on your problem description, AI will generate a fishbone diagram identifying potential root causes across 6 categories.</div>
+    </div>
+    <div class="ai-panel">
+      <div class="ai-header"><div class="ai-dot"></div><div class="ai-label">AI Fishbone Analysis</div></div>
+      <div class="ai-body" id="ai-fishbone-body" style="color:var(--text-soft);font-style:italic">Fill in the Problem Description first, then click Generate below.</div>
+      <div class="ai-chips">
+        <div class="ai-chip" onclick="aiFishbone()">✦ Generate Fishbone Analysis</div>
+        <div class="ai-chip" onclick="aiFishboneToRootCause()">✦ Copy main cause to Root Cause field</div>
+      </div>
+    </div>
+    <div id="fishbone-diagram" style="margin-top:16px;display:none">
+      <div style="overflow-x:auto">
+        <svg id="fishbone-svg" viewBox="0 0 900 500" style="width:100%;min-width:600px;font-family:var(--font)"></svg>
+      </div>
+      <div id="fishbone-categories" style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px"></div>
     </div>
   </div>
 
@@ -697,7 +755,7 @@ function nav(page, el){
   document.getElementById('topbar-sub').textContent   = m.sub;
   document.getElementById('btn-new').style.display    = page==='new' ? 'none' : '';
   if(page==='dashboard'){ renderDash(); }
-  if(page==='new' && !currentId){ resetForm(); }
+  if(page==='new'){ resetForm(); } // always reset when navigating to New Report
   if(page==='settings'){ loadSettingsForm(); }
   if(page==='inbox'){ renderInbox(); }
 }
@@ -755,12 +813,19 @@ function resetForm(){
   currentId=null;
   document.getElementById('btn-delete').style.display='none';
   document.getElementById('topbar-title').textContent='New Report';
-  document.querySelectorAll('#page-new input:not([type=checkbox]), #page-new select, #page-new textarea').forEach(el=>{
-    if(el.type==='checkbox') el.checked=false; else el.value='';
+  document.querySelectorAll('#page-new input, #page-new select, #page-new textarea').forEach(el=>{
+    if(el.type==='checkbox') el.checked=false;
+    else if(el.type==='hidden') return;
+    else el.value='';
   });
+  document.getElementById('r-system').value='Concord Compounding';
+  document.getElementById('r-plant').value='Concord Compounding';
   document.getElementById('r-date').value=new Date().toISOString().split('T')[0];
-  ['r-lot','r-box','r-custpo','r-containernum','r-chemist','r-other'].forEach(id=>{ var e=document.getElementById(id); if(e) e.value='NA'; });
+  document.getElementById('r-status').value='Open';
+  ['r-lot','r-box','r-custpo','r-containernum','r-other'].forEach(id=>{ var e=document.getElementById(id); if(e) e.value='NA'; });
   document.getElementById('ai-rc-panel').style.display='none';
+  var fb=document.getElementById('ai-fishbone-body'); if(fb) fb.textContent='Fill in the Problem Description first, then click Generate below.';
+  var fd=document.getElementById('fishbone-diagram'); if(fd) fd.style.display='none';
   ftab('order', document.querySelector('.ftab'));
 }
 
@@ -774,7 +839,7 @@ function ftab(id,el){
   document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));
   document.getElementById('fp-'+id).classList.add('active');
   if(el) el.classList.add('active');
-  else{ var map={order:0,problem:1,action:2,effectiveness:3,closure:4}; document.querySelectorAll('.ftab')[map[id]].classList.add('active'); }
+  else{ var map={order:0,problem:1,action:2,effectiveness:3,fishbone:4,closure:5}; var idx=map[id]; if(idx!==undefined) document.querySelectorAll('.ftab')[idx].classList.add('active'); }
 }
 
 function gv(id){ var e=document.getElementById(id); if(!e) return ''; return e.type==='checkbox' ? e.checked : e.value; }
@@ -809,6 +874,7 @@ function setForm(r){
   sv('rtype', r.type); sv('r-status', r.status);
 }
 
+var spToken = null;
 function saveReport(){
   var d=getForm();
   if(!d.type){ toast('Please select a report type.', true); return; }
@@ -816,12 +882,12 @@ function saveReport(){
   loadDB();
   var i=DB.findIndex(r=>r.id===d.id);
   if(i>=0) DB[i]=d; else DB.push(d);
-  saveDB(); currentId=d.id;
+  saveDB();
+  currentId=d.id;
   sv('r-id', d.id);
   document.getElementById('btn-delete').style.display='';
   document.getElementById('topbar-title').textContent='Editing: '+d.id;
-  spSync(d);
-  toast('Report '+d.id+' saved.');
+  toast('✓ Report '+d.id+' saved successfully.');
 }
 
 function editReport(id){
@@ -1236,6 +1302,48 @@ function saveSettings(){
   toast('✓ Settings saved!');
 }
 
+// ============ FISHBONE AI ============
+var _lastFishboneData = null;
+
+async function aiFishbone(){
+  var prob = gv('r-probdesc');
+  if(!prob || prob.length < 20){ toast('Please fill in the Problem Description first (at least 20 characters).', true); ftab('problem',null); return; }
+  var el = document.getElementById('ai-fishbone-body');
+  el.innerHTML = '<span class="spin"></span> Generating fishbone analysis...';
+  document.getElementById('fishbone-diagram').style.display='none';
+  var prompt = 'You are a quality engineer at a PVC/plastics compounding company. Generate a fishbone (Ishikawa) root cause analysis for this problem: "'+prob+'"\n\nRespond ONLY with valid JSON, no markdown, no extra text:\n{"effect":"brief effect label max 50 chars","categories":{"People":["cause1","cause2","cause3"],"Machine":["cause1","cause2","cause3"],"Material":["cause1","cause2","cause3"],"Method":["cause1","cause2","cause3"],"Measurement":["cause1","cause2"],"Environment":["cause1","cause2"]},"most_likely_cause":"The single most likely root cause in one sentence"}';
+  await callAI(prompt, 'ai-fishbone-body', function(text){
+    try{
+      var clean = text.replace(/```json|```/g,'').trim();
+      var data = JSON.parse(clean);
+      _lastFishboneData = data;
+      renderFishboneCards(data);
+      document.getElementById('fishbone-diagram').style.display='block';
+      el.innerHTML = '<b>Most likely root cause:</b> ' + (data.most_likely_cause || 'See categories below.');
+    } catch(e){ el.innerHTML = text.replace(/\n/g,'<br>'); }
+  });
+}
+
+function renderFishboneCards(data){
+  var cats = data.categories || {};
+  var colors = ['#1a3a5c','#e05c1a','#1e7c45','#b06200','#6a3a8c','#1a6a7c'];
+  var html = Object.keys(cats).map((cat,i)=>{
+    var causes = cats[cat]||[];
+    return '<div style="background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:12px;border-top:3px solid '+colors[i%colors.length]+'">'
+      +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:'+colors[i%colors.length]+';margin-bottom:8px">'+cat+'</div>'
+      +causes.map(c=>'<div style="font-size:12px;color:var(--text-mid);padding:3px 0;border-bottom:1px solid var(--neutral)">• '+c+'</div>').join('')
+      +'</div>';
+  }).join('');
+  document.getElementById('fishbone-categories').innerHTML = html;
+}
+
+function aiFishboneToRootCause(){
+  if(!_lastFishboneData){ toast('Generate the fishbone analysis first.', true); return; }
+  sv('r-rootcause', _lastFishboneData.most_likely_cause || '');
+  toast('Root cause copied! Go to Corrective Action tab.');
+  ftab('action', null);
+}
+
 // ============ MODAL & TOAST ============
 var _modalCb=null;
 function openModal(title,body,cb){
@@ -1262,6 +1370,17 @@ window.addEventListener('DOMContentLoaded',function(){
   document.getElementById('company-display').textContent=CFG.company;
   document.getElementById('r-date').value=new Date().toISOString().split('T')[0];
   if(CFG.logo) document.getElementById('logo-icon').innerHTML='<img src="'+CFG.logo+'" style="width:32px;height:32px;object-fit:contain;border-radius:4px">';
+  // Handle any MSAL redirect response silently on load (prevents popup flash)
+  try{
+    var msalLib = window.msalBrowser || window.msal;
+    if(msalLib && CFG.clientId && CFG.tenantId){
+      var tmp = new msalLib.PublicClientApplication({
+        auth:{ clientId:CFG.clientId, authority:'https://login.microsoftonline.com/'+CFG.tenantId, redirectUri: window.location.href.split('?')[0].split('#')[0] },
+        cache:{ cacheLocation:'sessionStorage' }
+      });
+      tmp.initialize().then(()=>tmp.handleRedirectPromise()).catch(()=>{});
+    }
+  } catch(e){}
   renderDash();
 });
 </script>

@@ -593,13 +593,30 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
     </div>
     <div id="ai-config-expanded" style="display:none">
       <div class="settings-grid">
-        <div class="setting-item"><label>AI Provider</label><select id="cfg-aimodel"><option value="claude">Claude API (Anthropic) — Recommended</option><option value="azure">Azure OpenAI / Copilot (GPT-4)</option></select></div>
-        <div class="setting-item"><label>API Key</label><input type="password" id="cfg-aikey" placeholder="Your API key"></div>
-        <div class="setting-item"><label>Azure OpenAI Endpoint <span style="font-size:11px;font-weight:400">(Azure only)</span></label><input type="text" id="cfg-aiep" placeholder="https://your-resource.openai.azure.com/"></div>
-        <div class="setting-item"><label>Deployment Name <span style="font-size:11px;font-weight:400">(Azure only)</span></label><input type="text" id="cfg-aideploy" value="gpt-4"></div>
+        <div class="setting-item">
+          <label>AI Provider</label>
+          <select id="cfg-aimodel" onchange="updateAIHints()">
+            <option value="gemini">Google Gemini (Free) ⭐ Recommended</option>
+            <option value="claude">Claude API (Anthropic)</option>
+            <option value="azure">Azure OpenAI / Copilot (GPT-4)</option>
+          </select>
+        </div>
+        <div class="setting-item">
+          <label>API Key</label>
+          <input type="password" id="cfg-aikey" placeholder="Paste your API key here">
+          <div id="ai-key-hint" style="font-size:11px;color:var(--text-soft);margin-top:3px">Get a free key at aistudio.google.com → "Get API key"</div>
+        </div>
+        <div class="setting-item" id="ai-ep-row" style="display:none">
+          <label>Azure OpenAI Endpoint <span style="font-size:11px;font-weight:400">(Azure only)</span></label>
+          <input type="text" id="cfg-aiep" placeholder="https://your-resource.openai.azure.com/">
+        </div>
+        <div class="setting-item" id="ai-deploy-row" style="display:none">
+          <label>Deployment Name <span style="font-size:11px;font-weight:400">(Azure only)</span></label>
+          <input type="text" id="cfg-aideploy" value="gpt-4">
+        </div>
       </div>
       <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
-        <button class="btn btn-primary" onclick="testAI()">Test AI</button>
+        <button class="btn btn-primary" onclick="testAI()">Test AI Connection</button>
         <span id="ai-status" style="font-size:13px;color:var(--text-soft)"></span>
       </div>
     </div>
@@ -732,7 +749,7 @@ var CFG = {
   aiKey:     ls('arts_aikey')     || '',
   aiEp:      ls('arts_aiep')      || '',
   aiDeploy:  ls('arts_aideploy')  || 'gpt-4',
-  aiModel:   ls('arts_aimodel')   || 'azure',
+  aiModel:   ls('arts_aimodel')   || 'gemini',
 };
 function ls(k){ try{ return localStorage.getItem(k); } catch(e){ return null; } }
 function lsSet(k,v){ try{ if(v) localStorage.setItem(k,v); else localStorage.removeItem(k); } catch(e){} }
@@ -1220,12 +1237,22 @@ async function callAI(prompt, outId, cb){
   var el=document.getElementById(outId);
   if(!el) return;
   if(!CFG.aiKey){
-    setTimeout(()=>{ var r=demoAI(prompt); el.innerHTML=r; if(cb) cb(r.replace(/<[^>]+>/g,'')); }, 1300);
+    setTimeout(function(){ var r=demoAI(prompt); el.innerHTML=r; if(cb) cb(r.replace(/<[^>]+>/g,'')); }, 1300);
     return;
   }
   try{
     var resp, text;
-    if(CFG.aiModel==='claude'){
+    if(CFG.aiModel==='gemini'){
+      var sysPrompt = 'You are a quality engineering AI assistant for a plastics compounding manufacturing company. Be concise, practical, and specific to manufacturing quality management.';
+      resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+CFG.aiKey, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ contents:[{ parts:[{ text: sysPrompt+'\n\n'+prompt }] }], generationConfig:{ maxOutputTokens:600, temperature:0.4 } })
+      });
+      var d=await resp.json();
+      if(d.error) throw new Error(d.error.message);
+      text = d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts ? d.candidates[0].content.parts.map(function(p){ return p.text||''; }).join('') : 'No response.';
+    } else if(CFG.aiModel==='claude'){
       resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':CFG.aiKey,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,messages:[{role:'user',content:prompt}]})});
       var d=await resp.json(); text=d.content&&d.content[0]?d.content[0].text:'No response.';
     } else {
@@ -1234,7 +1261,7 @@ async function callAI(prompt, outId, cb){
     }
     el.innerHTML=text.replace(/\n/g,'<br>');
     if(cb) cb(text);
-  } catch(e){ el.innerHTML='<span style="color:var(--danger)">AI error: '+e.message+'. Configure API in Settings.</span>'; }
+  } catch(e){ el.innerHTML='<span style="color:var(--danger)">AI error: '+e.message+'. Check your API key in Settings.</span>'; }
 }
 
 function demoAI(p){
@@ -1265,21 +1292,49 @@ function demoAI(p){
   if(p.includes('email')){
     return 'Subject: Quality Notification — Action Report\n\nDear [Customer],\n\nThank you for bringing this matter to our attention. We have received and reviewed your complaint and are actively investigating the root cause. A corrective action has been initiated and our team will provide a formal response within 5 business days. We sincerely apologize for any inconvenience caused.\n\nBest regards,\nQuality Department\nConcord Compounding';
   }
-  return 'AI features are ready. Configure your Claude API key in <b>Settings → Step 4</b> for live AI responses tailored to your actual reports.';
+  return 'AI features are ready. Add your free Google Gemini API key in <b>Settings → Step 4</b> for live AI responses tailored to your actual reports.';
+}
+
+function updateAIHints(){
+  var model = document.getElementById('cfg-aimodel').value;
+  var hint  = document.getElementById('ai-key-hint');
+  var epRow = document.getElementById('ai-ep-row');
+  var dpRow = document.getElementById('ai-deploy-row');
+  if(hint){
+    if(model==='gemini') hint.textContent='Free key at aistudio.google.com → "Get API key" — no credit card needed';
+    else if(model==='claude') hint.textContent='Get key at console.anthropic.com → API Keys';
+    else hint.textContent='Your Azure OpenAI API key from the Azure Portal';
+  }
+  if(epRow) epRow.style.display = model==='azure' ? '' : 'none';
+  if(dpRow) dpRow.style.display = model==='azure' ? '' : 'none';
 }
 
 async function testAI(){
   var el=document.getElementById('ai-status'); el.textContent='Testing...'; el.style.color='var(--text-soft)';
   CFG.aiKey=document.getElementById('cfg-aikey').value; CFG.aiEp=document.getElementById('cfg-aiep').value;
   CFG.aiDeploy=document.getElementById('cfg-aideploy').value; CFG.aiModel=document.getElementById('cfg-aimodel').value;
+  if(!CFG.aiKey){ el.textContent='✗ Please enter an API key first.'; el.style.color='var(--danger)'; return; }
   try{
-    var r,d;
-    if(CFG.aiModel==='claude'){
+    var r, d;
+    if(CFG.aiModel==='gemini'){
+      r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+CFG.aiKey,{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ contents:[{ parts:[{ text:'Say OK' }] }], generationConfig:{ maxOutputTokens:5 } })
+      });
+      d = await r.json();
+      if(d.error) throw new Error(d.error.message);
+      if(d.candidates){ el.textContent='✓ Google Gemini connected! AI features are now live.'; el.style.color='var(--success)'; }
+      else throw new Error('Unexpected response format');
+    } else if(CFG.aiModel==='claude'){
       r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':CFG.aiKey,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:10,messages:[{role:'user',content:'Say OK'}]})});
-      d=await r.json(); if(d.content){ el.textContent='✓ Claude connected.'; el.style.color='var(--success)'; } else throw new Error(d.error?.message||'No response');
+      d=await r.json();
+      if(d.content){ el.textContent='✓ Claude API connected! AI features are now live.'; el.style.color='var(--success)'; }
+      else throw new Error(d.error&&d.error.message||'No response');
     } else {
       r=await fetch(CFG.aiEp+'openai/deployments/'+CFG.aiDeploy+'/chat/completions?api-version=2024-02-01',{method:'POST',headers:{'Content-Type':'application/json','api-key':CFG.aiKey},body:JSON.stringify({messages:[{role:'user',content:'Say OK'}],max_tokens:5})});
-      d=await r.json(); if(d.choices){ el.textContent='✓ Azure OpenAI connected.'; el.style.color='var(--success)'; } else throw new Error(d.error?.message||'No response');
+      d=await r.json();
+      if(d.choices){ el.textContent='✓ Azure OpenAI connected! AI features are now live.'; el.style.color='var(--success)'; }
+      else throw new Error(d.error&&d.error.message||'No response');
     }
   } catch(e){ el.textContent='✗ '+e.message; el.style.color='var(--danger)'; }
 }
@@ -1303,7 +1358,8 @@ function loadSettingsForm(){
   document.getElementById('cfg-aikey').value    = CFG.aiKey || '';
   document.getElementById('cfg-aiep').value     = CFG.aiEp || '';
   document.getElementById('cfg-aideploy').value = CFG.aiDeploy || 'gpt-4';
-  document.getElementById('cfg-aimodel').value  = CFG.aiModel || 'claude';
+  document.getElementById('cfg-aimodel').value  = CFG.aiModel || 'gemini';
+  updateAIHints();
   loadDB(); document.getElementById('local-count').textContent = DB.length;
 
   // Show current URL as the redirect URI hint
@@ -1357,7 +1413,15 @@ async function aiFishbone(){
     try{
       var prompt = 'You are a quality engineer at a plastics compounding company. Generate a fishbone (Ishikawa) root cause analysis for this problem: "'+prob+'"\n\nRespond ONLY with valid JSON — no markdown, no explanation, just the JSON object:\n{"effect":"brief problem label max 40 chars","categories":{"People":["cause1","cause2","cause3"],"Machine":["cause1","cause2","cause3"],"Material":["cause1","cause2","cause3"],"Method":["cause1","cause2","cause3"],"Measurement":["cause1","cause2"],"Environment":["cause1","cause2"]},"most_likely_cause":"The single most likely root cause in one sentence"}';
       var resp, text;
-      if(CFG.aiModel==='claude'){
+      if(CFG.aiModel==='gemini'){
+        resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+CFG.aiKey, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ contents:[{ parts:[{ text: prompt }] }], generationConfig:{ maxOutputTokens:800, temperature:0.3 } })
+        });
+        var d=await resp.json();
+        if(d.error) throw new Error(d.error.message);
+        text = d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts ? d.candidates[0].content.parts.map(function(p){ return p.text||''; }).join('') : null;
+      } else if(CFG.aiModel==='claude'){
         resp = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':CFG.aiKey,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:prompt}]})});
         var d = await resp.json(); text = d.content&&d.content[0] ? d.content[0].text : null;
       } else {

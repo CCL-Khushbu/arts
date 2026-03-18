@@ -1244,7 +1244,7 @@ async function callAI(prompt, outId, cb){
     var resp, text;
     if(CFG.aiModel==='gemini'){
       var sysPrompt = 'You are a quality engineering AI assistant for a plastics compounding manufacturing company. Be concise, practical, and specific to manufacturing quality management.';
-      resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+CFG.aiKey, {
+      resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+CFG.aiKey, {
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ contents:[{ parts:[{ text: sysPrompt+'\n\n'+prompt }] }], generationConfig:{ maxOutputTokens:600, temperature:0.4 } })
@@ -1317,7 +1317,7 @@ async function testAI(){
   try{
     var r, d;
     if(CFG.aiModel==='gemini'){
-      r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+CFG.aiKey,{
+      r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+CFG.aiKey,{
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ contents:[{ parts:[{ text:'Say OK' }] }], generationConfig:{ maxOutputTokens:5 } })
       });
@@ -1414,7 +1414,7 @@ async function aiFishbone(){
       var prompt = 'You are a quality engineer at a plastics compounding company. Generate a fishbone (Ishikawa) root cause analysis for this problem: "'+prob+'"\n\nRespond ONLY with valid JSON — no markdown, no explanation, just the JSON object:\n{"effect":"brief problem label max 40 chars","categories":{"People":["cause1","cause2","cause3"],"Machine":["cause1","cause2","cause3"],"Material":["cause1","cause2","cause3"],"Method":["cause1","cause2","cause3"],"Measurement":["cause1","cause2"],"Environment":["cause1","cause2"]},"most_likely_cause":"The single most likely root cause in one sentence"}';
       var resp, text;
       if(CFG.aiModel==='gemini'){
-        resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+CFG.aiKey, {
+        resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+CFG.aiKey, {
           method:'POST', headers:{'Content-Type':'application/json'},
           body: JSON.stringify({ contents:[{ parts:[{ text: prompt }] }], generationConfig:{ maxOutputTokens:800, temperature:0.3 } })
         });

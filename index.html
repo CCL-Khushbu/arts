@@ -287,28 +287,16 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
     <div class="ftab" onclick="ftab('closure',this)">Closure</div>
   </div>
 
-  <!-- ORDER INFO -->
+  <!-- ORDER INFO — dynamic based on report type -->
   <div class="fpanel active card" id="fp-order">
-    <div class="fgrid">
-      <div class="fg"><label>Customer Name</label><input type="text" id="r-customer" placeholder="e.g. Northern Cables Inc"></div>
+    <!-- TYPE BADGE -->
+    <div id="order-type-badge" style="display:none;margin-bottom:14px;padding:8px 14px;border-radius:var(--radius);font-size:12px;font-weight:600;border:1px solid var(--border)"></div>
+
+    <!-- SHARED FIELDS (all types) -->
+    <div class="fgrid" id="order-shared">
       <div class="fg"><label>Product Stock Code <span style="font-size:11px;font-weight:400;color:var(--text-soft)">(7 digits)</span></label><input type="text" id="r-product" placeholder="e.g. 6744100" pattern="[0-9]{7}" maxlength="7" oninput="this.value=this.value.replace(/[^0-9]/g,'').substring(0,7)"></div>
       <div class="fg"><label>Product Description</label><input type="text" id="r-prodesc"></div>
-      <div class="fg"><label>Order #</label><input type="text" id="r-order"></div>
       <div class="fg"><label>Lot #</label><input type="text" id="r-lot" value="NA"></div>
-      <div class="fg"><label>Box / HC #</label><input type="text" id="r-box" value="NA"></div>
-      <div class="fg"><label>Qty Shipped</label><input type="number" id="r-qty"></div>
-      <div class="fg"><label>Ship Date</label><input type="date" id="r-shipdate"></div>
-      <div class="fg"><label>Ship To</label><input type="text" id="r-shipto"></div>
-      <div class="fg"><label>Cust PO #</label><input type="text" id="r-custpo" value="NA"></div>
-      <div class="fg">
-        <label>Container Type</label>
-        <input type="text" id="r-container" list="container-options" placeholder="Select or type...">
-        <datalist id="container-options"><option>Supersacs</option><option>Gaylords</option><option>Bulk Trucks</option></datalist>
-      </div>
-      <div class="fg"><label>Container #</label><input type="text" id="r-containernum" value="NA"></div>
-      <div class="fg"><label>CSR</label><input type="text" id="r-csr" placeholder="Customer Service Rep"></div>
-      <div class="fg"><label>TSE</label><input type="text" id="r-tse" placeholder="Technical Service Engineer"></div>
-      <div class="fg"><label>Salesman</label><input type="text" id="r-salesman"></div>
       <div class="fg"><label>Application</label><input type="text" id="r-appcode" placeholder="e.g. Wire &amp; Cable, Pipe, Moulding..."></div>
       <div class="fg">
         <label>Product Rejected?</label>
@@ -317,7 +305,119 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
       </div>
       <div class="fg"><label>Other Notes</label><input type="text" id="r-other" value="NA"></div>
     </div>
-    <!-- hidden fields kept for data compatibility -->
+
+    <!-- CNC FIELDS: Customer Nonconformance -->
+    <div id="order-cnc" style="display:none">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-soft);margin:14px 0 10px;padding-top:10px;border-top:1px solid var(--border)">Customer &amp; Order Details</div>
+      <div class="fgrid">
+        <div class="fg"><label>Customer Name</label><input type="text" id="r-customer" placeholder="e.g. Northern Cables Inc"></div>
+        <div class="fg"><label>Order #</label><input type="text" id="r-order"></div>
+        <div class="fg"><label>Cust PO #</label><input type="text" id="r-custpo" value="NA"></div>
+        <div class="fg"><label>Box / HC #</label><input type="text" id="r-box" value="NA"></div>
+        <div class="fg"><label>Qty Shipped</label><input type="number" id="r-qty"></div>
+        <div class="fg"><label>Ship Date</label><input type="date" id="r-shipdate"></div>
+        <div class="fg"><label>Ship To</label><input type="text" id="r-shipto"></div>
+        <div class="fg">
+          <label>Container Type</label>
+          <input type="text" id="r-container" list="container-options" placeholder="Select or type...">
+          <datalist id="container-options"><option>Supersacs</option><option>Gaylords</option><option>Bulk Trucks</option></datalist>
+        </div>
+        <div class="fg"><label>Container #</label><input type="text" id="r-containernum" value="NA"></div>
+        <div class="fg"><label>CSR</label><input type="text" id="r-csr" placeholder="Customer Service Rep"></div>
+        <div class="fg"><label>TSE</label><input type="text" id="r-tse" placeholder="Technical Service Engineer"></div>
+        <div class="fg"><label>Salesman</label><input type="text" id="r-salesman"></div>
+      </div>
+    </div>
+
+    <!-- SNC FIELDS: Supplier Nonconformance -->
+    <div id="order-snc" style="display:none">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-soft);margin:14px 0 10px;padding-top:10px;border-top:1px solid var(--border)">Supplier &amp; Material Details</div>
+      <div class="fgrid">
+        <div class="fg"><label>Supplier Name</label><input type="text" id="r-supplier" placeholder="e.g. Mexichem, Shintech..."></div>
+        <div class="fg"><label>Supplier PO #</label><input type="text" id="r-supplierpо" placeholder="PO-2026-XXXX"></div>
+        <div class="fg"><label>Supplier Lot / Batch #</label><input type="text" id="r-supplierlot"></div>
+        <div class="fg"><label>Qty Received</label><input type="number" id="r-qtyreceived"></div>
+        <div class="fg"><label>Date Received</label><input type="date" id="r-datereceived"></div>
+        <div class="fg">
+          <label>Container Type</label>
+          <input type="text" id="r-container-snc" list="container-options-snc" placeholder="Select or type...">
+          <datalist id="container-options-snc"><option>Supersacs</option><option>Gaylords</option><option>Bulk Trucks</option><option>Drums</option><option>Bags</option></datalist>
+        </div>
+        <div class="fg"><label>Container / Vehicle #</label><input type="text" id="r-containernum-snc" value="NA"></div>
+        <div class="fg"><label>TSE / Technical Contact</label><input type="text" id="r-tse-snc"></div>
+        <div class="fg"><label>Purchasing Contact</label><input type="text" id="r-purchcontact"></div>
+        <div class="fg"><label>Inspection Result</label>
+          <input type="text" id="r-inspresult" list="insp-options" placeholder="Select or type...">
+          <datalist id="insp-options"><option>Failed Incoming QC</option><option>Failed In-Process</option><option>Failed Final QC</option><option>Customer Complaint Triggered</option></datalist>
+        </div>
+        <div class="fg"><label>Certificate of Analysis #</label><input type="text" id="r-coanum" placeholder="COA reference number"></div>
+        <div class="fg"><label>Material Quarantined?</label>
+          <input type="text" id="r-quarantined" list="quar-options" placeholder="Select or type...">
+          <datalist id="quar-options"><option>Yes — full lot</option><option>Yes — partial</option><option>No</option></datalist>
+        </div>
+      </div>
+    </div>
+
+    <!-- CAR FIELDS: Corrective Action Report -->
+    <div id="order-car" style="display:none">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-soft);margin:14px 0 10px;padding-top:10px;border-top:1px solid var(--border)">Internal Reference</div>
+      <div class="fgrid">
+        <div class="fg"><label>Customer / Department</label><input type="text" id="r-customer" placeholder="Internal dept or customer name"></div>
+        <div class="fg"><label>Related NCR / Report #</label><input type="text" id="r-relatedreport" placeholder="e.g. CNC-26-03-001"></div>
+        <div class="fg"><label>Order #</label><input type="text" id="r-order"></div>
+        <div class="fg"><label>CSR</label><input type="text" id="r-csr" placeholder="Customer Service Rep"></div>
+        <div class="fg"><label>TSE</label><input type="text" id="r-tse" placeholder="Technical Service Engineer"></div>
+        <div class="fg"><label>Qty Affected</label><input type="number" id="r-qty"></div>
+      </div>
+    </div>
+
+    <!-- PAR FIELDS: Preventive Action Report -->
+    <div id="order-par" style="display:none">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-soft);margin:14px 0 10px;padding-top:10px;border-top:1px solid var(--border)">Preventive Action Details</div>
+      <div class="fgrid">
+        <div class="fg"><label>Department / Area</label><input type="text" id="r-customer" placeholder="e.g. Production, Quality, Maintenance"></div>
+        <div class="fg"><label>Risk / Trend Identified By</label><input type="text" id="r-riskidentby"></div>
+        <div class="fg"><label>Source of Identification</label>
+          <input type="text" id="r-risksource" list="risksource-options" placeholder="Select or type...">
+          <datalist id="risksource-options"><option>Internal Audit</option><option>Customer Feedback</option><option>Trend Analysis</option><option>Near Miss</option><option>Management Review</option><option>SPC Data</option></datalist>
+        </div>
+        <div class="fg"><label>Potential Impact</label>
+          <input type="text" id="r-impact" list="impact-options" placeholder="Select or type...">
+          <datalist id="impact-options"><option>Customer Complaint</option><option>Product Nonconformance</option><option>Safety Risk</option><option>Process Failure</option><option>Supplier Issue</option></datalist>
+        </div>
+        <div class="fg"><label>TSE</label><input type="text" id="r-tse" placeholder="Technical Service Engineer"></div>
+        <div class="fg"><label>Priority</label>
+          <input type="text" id="r-priority" list="priority-options" placeholder="Select or type...">
+          <datalist id="priority-options"><option>High</option><option>Medium</option><option>Low</option></datalist>
+        </div>
+      </div>
+    </div>
+
+    <!-- EIR FIELDS: Emergency Incident Report -->
+    <div id="order-eir" style="display:none">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-soft);margin:14px 0 10px;padding-top:10px;border-top:1px solid var(--border)">Incident Details</div>
+      <div class="fgrid">
+        <div class="fg"><label>Incident Date &amp; Time</label><input type="datetime-local" id="r-incidentdate"></div>
+        <div class="fg"><label>Location / Area</label><input type="text" id="r-incidentloc" placeholder="e.g. Line 3, Warehouse, Lab"></div>
+        <div class="fg"><label>Incident Type</label>
+          <input type="text" id="r-incidenttype" list="incident-options" placeholder="Select or type...">
+          <datalist id="incident-options"><option>Safety</option><option>Environmental</option><option>Equipment Failure</option><option>Fire / Spill</option><option>Quality Emergency</option><option>Other</option></datalist>
+        </div>
+        <div class="fg"><label>Personnel Involved</label><input type="text" id="r-personnel" placeholder="Names of people involved"></div>
+        <div class="fg"><label>Reported To</label><input type="text" id="r-reportedto" placeholder="Supervisor / Manager name"></div>
+        <div class="fg"><label>Immediate Action Taken</label><input type="text" id="r-immediateaction" placeholder="What was done right away?"></div>
+        <div class="fg"><label>Injuries / Damage</label>
+          <input type="text" id="r-injuries" list="injury-options" placeholder="Select or type...">
+          <datalist id="injury-options"><option>None</option><option>Minor injury</option><option>Medical treatment required</option><option>Equipment damage</option><option>Environmental release</option></datalist>
+        </div>
+        <div class="fg"><label>Regulatory Reporting Required?</label>
+          <input type="text" id="r-regulatory" list="reg-options" placeholder="Select or type...">
+          <datalist id="reg-options"><option>Yes</option><option>No</option><option>Under Assessment</option></datalist>
+        </div>
+      </div>
+    </div>
+
+    <!-- hidden fields for data compatibility -->
     <input type="hidden" id="r-system" value="Concord Compounding">
     <input type="hidden" id="r-plant" value="Concord Compounding">
     <input type="hidden" id="r-plantcode" value="">
@@ -927,6 +1027,34 @@ function resetForm(){
 function onTypeChange(){
   var t=document.getElementById('rtype').value;
   if(t&&!currentId) document.getElementById('r-id').value=genId(t);
+  showTypeFields(t);
+}
+
+function showTypeFields(t){
+  var types = ['cnc','snc','car','par','eir'];
+  types.forEach(function(type){
+    var el = document.getElementById('order-'+type);
+    if(el) el.style.display = (t.toLowerCase()===type) ? 'block' : 'none';
+  });
+  // Update type badge
+  var badge = document.getElementById('order-type-badge');
+  var configs = {
+    CNC:{label:'Customer Nonconformance Report',color:'#1a5ea8',bg:'#e6f0fb'},
+    SNC:{label:'Supplier Nonconformance Report',color:'#b06200',bg:'#fdf3e3'},
+    CAR:{label:'Corrective Action Report',color:'#1e7c45',bg:'#eaf5ee'},
+    PAR:{label:'Preventive Action Report',color:'#6a3a8c',bg:'#f3eaf9'},
+    EIR:{label:'Emergency Incident Report',color:'#b52020',bg:'#fdeaea'},
+  };
+  if(badge && t && configs[t]){
+    var c = configs[t];
+    badge.style.display = 'block';
+    badge.style.background = c.bg;
+    badge.style.borderColor = c.color;
+    badge.style.color = c.color;
+    badge.textContent = '📋 ' + c.label + ' — fill in the relevant fields below';
+  } else if(badge){
+    badge.style.display = 'none';
+  }
 }
 
 function ftab(id,el){
@@ -948,9 +1076,26 @@ function getForm(){
     order:gv('r-order'), lot:gv('r-lot'), box:gv('r-box'), qty:gv('r-qty'),
     shipdate:gv('r-shipdate'), shipto:gv('r-shipto'), custpo:gv('r-custpo'),
     plant:gv('r-plant'), plantcode:gv('r-plantcode'), division:gv('r-division'),
-    container:gv('r-container'), containernum:gv('r-containernum'),
-    csr:gv('r-csr'), tse:gv('r-tse'), chemist:gv('r-chemist'), salesman:gv('r-salesman'),
+    container:gv('r-container')||gv('r-container-snc'),
+    containernum:gv('r-containernum')||gv('r-containernum-snc'),
+    csr:gv('r-csr'), tse:gv('r-tse')||gv('r-tse-snc'), chemist:gv('r-chemist'), salesman:gv('r-salesman'),
     pic:gv('r-pic'), appcode:gv('r-appcode'), rejected:gv('r-rejected'), other:gv('r-other'),
+    // SNC fields
+    supplier:gv('r-supplier'), supplierpo:gv('r-supplierpo'), supplierlot:gv('r-supplierlot'),
+    qtyreceived:gv('r-qtyreceived'), datereceived:gv('r-datereceived'),
+    inspresult:gv('r-inspresult'), coanum:gv('r-coanum'), quarantined:gv('r-quarantined'),
+    purchcontact:gv('r-purchcontact'),
+    // CAR fields
+    relatedreport:gv('r-relatedreport'),
+    // PAR fields
+    riskidentby:gv('r-riskidentby'), risksource:gv('r-risksource'),
+    impact:gv('r-impact'), priority:gv('r-priority'),
+    // EIR fields
+    incidentdate:gv('r-incidentdate'), incidentloc:gv('r-incidentloc'),
+    incidenttype:gv('r-incidenttype'), personnel:gv('r-personnel'),
+    reportedto:gv('r-reportedto'), immediateaction:gv('r-immediateaction'),
+    injuries:gv('r-injuries'), regulatory:gv('r-regulatory'),
+    // Problem & Action
     probdesc:gv('r-probdesc'), probcat:gv('r-probcat'), probcode:gv('r-probcode'),
     assignedname:gv('r-assignedname'), dept:gv('r-dept'), comments:gv('r-comments'),
     caparty:gv('r-caparty'), deptmgr:gv('r-deptmgr'), casummary:gv('r-casummary'),
@@ -968,6 +1113,8 @@ function getForm(){
 function setForm(r){
   Object.keys(r).forEach(function(k){ sv('r-'+k, r[k]); });
   sv('rtype', r.type); sv('r-status', r.status);
+  // Show correct type-specific fields
+  if(r.type) showTypeFields(r.type);
   // Spread distlist back to individual fields
   var dists = (r.distlist||'').split(',').map(function(s){ return s.trim(); });
   for(var n=1;n<=8;n++){ sv('r-dist'+n, dists[n-1]||''); }

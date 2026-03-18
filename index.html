@@ -1326,16 +1326,93 @@ async function aiFishbone(){
   var el = document.getElementById('ai-fishbone-body');
   el.innerHTML = '<span class="spin"></span> Generating fishbone analysis...';
   document.getElementById('fishbone-diagram').style.display='none';
-  var prompt = 'You are a quality engineer at a PVC/plastics compounding company. Generate a fishbone (Ishikawa) root cause analysis for this problem: "'+prob+'"\n\nRespond ONLY with valid JSON, no markdown, no extra text:\n{"effect":"brief effect label max 50 chars","categories":{"People":["cause1","cause2","cause3"],"Machine":["cause1","cause2","cause3"],"Material":["cause1","cause2","cause3"],"Method":["cause1","cause2","cause3"],"Measurement":["cause1","cause2"],"Environment":["cause1","cause2"]},"most_likely_cause":"The single most likely root cause in one sentence"}';
-  await callAI(prompt, 'ai-fishbone-body', function(text){
+
+  var jsonText = null;
+
+  if(!CFG.aiKey){
+    // Demo mode — generate contextual causes based on problem keywords
+    await new Promise(r=>setTimeout(r,1200));
+    jsonText = demoFishbone(prob);
+  } else {
+    // Live AI mode
     try{
-      var clean = text.replace(/```json|```/g,'').trim();
-      var data = JSON.parse(clean);
-      _lastFishboneData = data;
-      renderFishboneCards(data);
-      document.getElementById('fishbone-diagram').style.display='block';
-      el.innerHTML = '<b>Most likely root cause:</b> ' + (data.most_likely_cause || 'See categories below.');
-    } catch(e){ el.innerHTML = text.replace(/\n/g,'<br>'); }
+      var prompt = 'You are a quality engineer at a plastics compounding company. Generate a fishbone (Ishikawa) root cause analysis for this problem: "'+prob+'"\n\nRespond ONLY with valid JSON — no markdown, no explanation, just the JSON object:\n{"effect":"brief problem label max 40 chars","categories":{"People":["cause1","cause2","cause3"],"Machine":["cause1","cause2","cause3"],"Material":["cause1","cause2","cause3"],"Method":["cause1","cause2","cause3"],"Measurement":["cause1","cause2"],"Environment":["cause1","cause2"]},"most_likely_cause":"The single most likely root cause in one sentence"}';
+      var resp, text;
+      if(CFG.aiModel==='claude'){
+        resp = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':CFG.aiKey,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:prompt}]})});
+        var d = await resp.json(); text = d.content&&d.content[0] ? d.content[0].text : null;
+      } else {
+        resp = await fetch(CFG.aiEp+'openai/deployments/'+CFG.aiDeploy+'/chat/completions?api-version=2024-02-01',{method:'POST',headers:{'Content-Type':'application/json','api-key':CFG.aiKey},body:JSON.stringify({messages:[{role:'system',content:'You are a quality engineering AI. Always respond with pure JSON only, no markdown.'},{role:'user',content:prompt}],max_tokens:800})});
+        var d = await resp.json(); text = d.choices&&d.choices[0] ? d.choices[0].message.content : null;
+      }
+      if(text) jsonText = text.replace(/```json|```/g,'').trim();
+    } catch(e){
+      el.innerHTML = '<span style="color:var(--danger)">AI error: '+e.message+'</span>'; return;
+    }
+  }
+
+  // Parse and render
+  try{
+    var data = JSON.parse(jsonText);
+    _lastFishboneData = data;
+    el.innerHTML = '<b>✓ Analysis complete.</b> Most likely root cause: <b>' + (data.most_likely_cause||'See diagram below') + '</b>';
+    renderFishboneCards(data);
+    document.getElementById('fishbone-diagram').style.display='block';
+  } catch(e){
+    el.innerHTML = '<span style="color:var(--danger)">Could not parse AI response. Try again.</span><br><small>'+jsonText+'</small>';
+  }
+}
+
+function demoFishbone(prob){
+  // Generate causes contextually based on keywords in problem description
+  var p = prob.toLowerCase();
+  var isColor     = p.includes('color') || p.includes('colour') || p.includes('black') || p.includes('grey') || p.includes('white');
+  var isContam    = p.includes('contam') || p.includes('foreign') || p.includes('particle') || p.includes('pellet');
+  var isDimensional = p.includes('dimension') || p.includes('size') || p.includes('length') || p.includes('diameter');
+  var isProcessing = p.includes('process') || p.includes('melt') || p.includes('extrusion') || p.includes('mould');
+
+  var causes = {
+    People: isContam
+      ? ['Operator skipped purge step during changeover','Inadequate training on cross-contamination prevention','Fatigue during long shift reducing attention']
+      : isColor
+      ? ['Incorrect colorant measured by operator','Training gap on color matching procedure','Handoff communication error between shifts']
+      : ['Operator did not follow standard procedure','Insufficient training on quality checks','Shift changeover communication breakdown'],
+    Machine: isContam
+      ? ['Diverter valve malfunction during product changeover','Worn seals in transfer piping','Inadequate purge cycle between runs']
+      : isColor
+      ? ['Colorant dosing pump out of calibration','Mixer not fully cleaned between color runs','Sensor drift in colorant feed system']
+      : isDimensional
+      ? ['Die gap drifted out of spec','Puller speed inconsistency','Worn calibration tooling']
+      : ['Equipment not maintained to schedule','Sensor out of calibration','Mechanical wear causing inconsistency'],
+    Material: isContam
+      ? ['Residual material from previous run not purged','Incoming raw material mislabeled by supplier','Contaminated storage container or hopper']
+      : isColor
+      ? ['Wrong colorant batch used','Colorant moisture content out of spec','Supplier color formulation inconsistency']
+      : ['Raw material lot variation from supplier','Incorrect material loaded to hopper','Storage conditions degraded material'],
+    Method: isContam
+      ? ['No mandatory line inspection between product runs','Changeover SOP not enforced consistently','Lack of documented cleaning validation steps']
+      : ['Procedure not updated to reflect current process','No verification step before production start','Work instruction unclear or inaccessible'],
+    Measurement: [
+      'Sampling frequency insufficient to detect issue early',
+      'Lab result not reviewed before shipment release'
+    ],
+    Environment: isContam
+      ? ['Shared transfer lines between incompatible products','Airborne dust in compounding area']
+      : ['Temperature variation affecting product properties','Humidity impact on raw material storage']
+  };
+
+  var mostLikely = isContam
+    ? 'Automated diverter valve malfunction during product changeover allowed residual material to contaminate the current run.'
+    : isColor
+    ? 'Colorant dosing pump calibration drift caused incorrect colorant ratio in the final compound.'
+    : isDimensional
+    ? 'Die gap drift due to thermal expansion caused dimensional deviation outside specification.'
+    : 'Standard operating procedure was not followed consistently, leading to the observed nonconformance.';
+
+  return JSON.stringify({
+    effect: prob.substring(0,40),
+    categories: causes,
+    most_likely_cause: mostLikely
   });
 }
 

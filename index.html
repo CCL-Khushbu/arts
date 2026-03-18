@@ -596,7 +596,11 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
         <div class="setting-item">
           <label>AI Provider</label>
           <select id="cfg-aimodel" onchange="updateAIHints()">
-            <option value="gemini">Google Gemini (Free) ⭐ Recommended</option>
+            <option value="groq">Groq — Llama 3 (Free, Fast) ⭐ Recommended</option>
+            <option value="gemini">Google Gemini (Free in some regions)</option>
+            <option value="claude">Claude API (Anthropic)</option>
+            <option value="azure">Azure OpenAI / Copilot (GPT-4)</option>
+          </select>
             <option value="claude">Claude API (Anthropic)</option>
             <option value="azure">Azure OpenAI / Copilot (GPT-4)</option>
           </select>
@@ -749,7 +753,7 @@ var CFG = {
   aiKey:     ls('arts_aikey')     || '',
   aiEp:      ls('arts_aiep')      || '',
   aiDeploy:  ls('arts_aideploy')  || 'gpt-4',
-  aiModel:   ls('arts_aimodel')   || 'gemini',
+  aiModel:   ls('arts_aimodel')   || 'groq',
 };
 function ls(k){ try{ return localStorage.getItem(k); } catch(e){ return null; } }
 function lsSet(k,v){ try{ if(v) localStorage.setItem(k,v); else localStorage.removeItem(k); } catch(e){} }
@@ -1242,7 +1246,16 @@ async function callAI(prompt, outId, cb){
   }
   try{
     var resp, text;
-    if(CFG.aiModel==='gemini'){
+    if(CFG.aiModel==='groq'){
+      resp = await fetch('https://api.groq.com/openai/v1/chat/completions',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+CFG.aiKey},
+        body:JSON.stringify({model:'llama3-8b-8192',messages:[{role:'system',content:'You are a quality engineering AI for a plastics compounding manufacturing company. Be concise and practical.'},{role:'user',content:prompt}],max_tokens:600,temperature:0.4})
+      });
+      var d=await resp.json();
+      if(d.error) throw new Error(d.error.message);
+      text=d.choices&&d.choices[0]?d.choices[0].message.content:'No response.';
+    } else if(CFG.aiModel==='gemini'){
       var sysPrompt = 'You are a quality engineering AI assistant for a plastics compounding manufacturing company. Be concise, practical, and specific to manufacturing quality management.';
       resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+CFG.aiKey, {
         method:'POST',
@@ -1301,7 +1314,8 @@ function updateAIHints(){
   var epRow = document.getElementById('ai-ep-row');
   var dpRow = document.getElementById('ai-deploy-row');
   if(hint){
-    if(model==='gemini') hint.textContent='Free key at aistudio.google.com → "Get API key" — no credit card needed';
+    if(model==='groq')   hint.textContent='Free key at console.groq.com → API Keys → Create API Key — no credit card needed';
+    else if(model==='gemini') hint.textContent='Free key at aistudio.google.com → Get API key (not available in all regions)';
     else if(model==='claude') hint.textContent='Get key at console.anthropic.com → API Keys';
     else hint.textContent='Your Azure OpenAI API key from the Azure Portal';
   }
@@ -1316,7 +1330,17 @@ async function testAI(){
   if(!CFG.aiKey){ el.textContent='✗ Please enter an API key first.'; el.style.color='var(--danger)'; return; }
   try{
     var r, d;
-    if(CFG.aiModel==='gemini'){
+    if(CFG.aiModel==='groq'){
+      r = await fetch('https://api.groq.com/openai/v1/chat/completions',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+CFG.aiKey},
+        body:JSON.stringify({model:'llama3-8b-8192',messages:[{role:'user',content:'Say OK'}],max_tokens:5})
+      });
+      d=await r.json();
+      if(d.error) throw new Error(d.error.message);
+      if(d.choices){ el.textContent='✓ Groq connected! Live AI is active.'; el.style.color='var(--success)'; }
+      else throw new Error('Unexpected response');
+    } else if(CFG.aiModel==='gemini'){
       r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+CFG.aiKey,{
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ contents:[{ parts:[{ text:'Say OK' }] }], generationConfig:{ maxOutputTokens:5 } })
@@ -1358,7 +1382,7 @@ function loadSettingsForm(){
   document.getElementById('cfg-aikey').value    = CFG.aiKey || '';
   document.getElementById('cfg-aiep').value     = CFG.aiEp || '';
   document.getElementById('cfg-aideploy').value = CFG.aiDeploy || 'gpt-4';
-  document.getElementById('cfg-aimodel').value  = CFG.aiModel || 'gemini';
+  document.getElementById('cfg-aimodel').value  = CFG.aiModel || 'groq';
   updateAIHints();
   loadDB(); document.getElementById('local-count').textContent = DB.length;
 
@@ -1384,7 +1408,7 @@ function saveSettings(){
   CFG.aiKey    = document.getElementById('cfg-aikey').value    || '';
   CFG.aiEp     = document.getElementById('cfg-aiep').value     || '';
   CFG.aiDeploy = document.getElementById('cfg-aideploy').value || 'gpt-4';
-  CFG.aiModel  = document.getElementById('cfg-aimodel').value  || 'claude';
+  CFG.aiModel  = document.getElementById('cfg-aimodel').value  || 'groq';
   [{arts_company:CFG.company},{arts_logo:CFG.logo},{arts_appurl:CFG.appUrl},{arts_spsite:CFG.spSite},{arts_splist:CFG.spList},{arts_clientid:CFG.clientId},{arts_tenantid:CFG.tenantId},{arts_aikey:CFG.aiKey},{arts_aiep:CFG.aiEp},{arts_aideploy:CFG.aiDeploy},{arts_aimodel:CFG.aiModel}].forEach(o=>Object.entries(o).forEach(([k,v])=>lsSet(k,v)));
   document.getElementById('company-display').textContent = CFG.company;
   if(CFG.logo){ document.getElementById('logo-icon').innerHTML='<img src="'+CFG.logo+'" style="width:32px;height:32px;object-fit:contain;border-radius:4px">'; }
@@ -1413,7 +1437,16 @@ async function aiFishbone(){
     try{
       var prompt = 'You are a quality engineer at a plastics compounding company. Generate a fishbone (Ishikawa) root cause analysis for this problem: "'+prob+'"\n\nRespond ONLY with valid JSON — no markdown, no explanation, just the JSON object:\n{"effect":"brief problem label max 40 chars","categories":{"People":["cause1","cause2","cause3"],"Machine":["cause1","cause2","cause3"],"Material":["cause1","cause2","cause3"],"Method":["cause1","cause2","cause3"],"Measurement":["cause1","cause2"],"Environment":["cause1","cause2"]},"most_likely_cause":"The single most likely root cause in one sentence"}';
       var resp, text;
-      if(CFG.aiModel==='gemini'){
+      if(CFG.aiModel==='groq'){
+        resp = await fetch('https://api.groq.com/openai/v1/chat/completions',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+CFG.aiKey},
+          body:JSON.stringify({model:'llama3-8b-8192',messages:[{role:'system',content:'You are a quality engineering AI. Respond with pure JSON only, no markdown, no explanation.'},{role:'user',content:prompt}],max_tokens:800,temperature:0.3})
+        });
+        var d=await resp.json();
+        if(d.error) throw new Error(d.error.message);
+        text=d.choices&&d.choices[0]?d.choices[0].message.content:null;
+      } else if(CFG.aiModel==='gemini'){
         resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+CFG.aiKey, {
           method:'POST', headers:{'Content-Type':'application/json'},
           body: JSON.stringify({ contents:[{ parts:[{ text: prompt }] }], generationConfig:{ maxOutputTokens:800, temperature:0.3 } })

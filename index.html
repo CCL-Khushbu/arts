@@ -106,6 +106,18 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
 
 /* AI PANEL */
 .ai-panel{background:linear-gradient(135deg,#f0f5ff,#fff8f5);border:1px solid #c8d8f0;border-radius:var(--radius-lg);padding:16px;margin-bottom:16px}
+/* ---- AI Chat ---- */
+.ai-chat{border:1px solid #c8d8f0;border-radius:var(--radius-lg);overflow:hidden;margin-top:16px;background:var(--white)}
+.ai-chat-header{background:var(--brand);color:#fff;padding:10px 14px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;justify-content:space-between}
+.ai-chat-messages{height:280px;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;background:#f8f9fb}
+.ai-chat-msg{max-width:85%;padding:9px 13px;border-radius:10px;font-size:13px;line-height:1.6}
+.ai-chat-msg.user{background:var(--brand);color:#fff;align-self:flex-end;border-bottom-right-radius:3px}
+.ai-chat-msg.ai{background:var(--white);color:var(--text);align-self:flex-start;border:1px solid var(--border);border-bottom-left-radius:3px}
+.ai-chat-input{display:flex;border-top:1px solid var(--border);background:var(--white)}
+.ai-chat-input input{flex:1;padding:10px 14px;border:none;font-family:var(--font);font-size:13px;outline:none;background:transparent}
+.ai-chat-input button{padding:10px 18px;background:var(--brand);color:#fff;border:none;cursor:pointer;font-size:13px;font-family:var(--font);font-weight:500;flex-shrink:0}
+.ai-chat-input button:hover{background:var(--brand-mid)}
+.ai-chat-suggestions{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;border-top:1px solid var(--border);background:#f8f9fb}
 .ai-header{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .ai-dot{width:8px;height:8px;border-radius:50%;background:var(--brand);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
@@ -351,7 +363,13 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
       <div class="fg"><label>Dept. Manager</label><input type="text" id="r-deptmgr"></div>
       <div class="fg full"><label>Summary of Corrective Action</label><textarea id="r-casummary" rows="6" placeholder="Describe what corrective action was taken..."></textarea></div>
       <div class="fg full"><label>Root Cause</label><textarea id="r-rootcause" rows="4" placeholder="Describe the root cause in detail..."></textarea></div>
-      <div class="fg full"><label>Justification</label><textarea id="r-justification" rows="4" placeholder="Provide justification for the corrective action chosen..."></textarea></div>
+      <div class="fg full">
+        <label style="display:flex;align-items:center;justify-content:space-between">
+          Justification
+          <button class="btn btn-sm" style="font-size:11px;padding:3px 10px" onclick="aiDraftJustification()">✦ AI Draft</button>
+        </label>
+        <textarea id="r-justification" rows="4" placeholder="Provide justification for the corrective action chosen..."></textarea>
+      </div>
       <div class="fg"><label>Dept. Mgr Accept Date</label><input type="date" id="r-mgracceptdate"></div>
       <div class="fg"><label>Implementation Date</label><input type="date" id="r-impldate"></div>
       <div class="fg"><label>Customer Notification Date</label><input type="date" id="r-custnotifydate"></div>
@@ -365,7 +383,27 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
       <div class="ai-body" id="ai-ca-body" style="color:var(--text-soft);font-style:italic">Fill the problem description first, then click below.</div>
       <div class="ai-chips">
         <div class="ai-chip" onclick="aiDraftCA()">✦ Draft corrective action</div>
+        <div class="ai-chip" onclick="aiDraftJustification()">✦ Draft justification</div>
         <div class="ai-chip" onclick="aiDraftEmail()">✦ Draft notification email</div>
+      </div>
+    </div>
+    <div class="ai-chat" id="chat-action">
+      <div class="ai-chat-header">
+        <span>💬 Chat with AI about this report</span>
+        <span style="font-size:11px;opacity:0.7;font-weight:400">Ask anything — refine the action, check compliance, get advice</span>
+      </div>
+      <div class="ai-chat-messages" id="chat-action-msgs">
+        <div class="ai-chat-msg ai">Hi! I can help you with corrective actions, root cause analysis, or anything about this report. What would you like to know?</div>
+      </div>
+      <div class="ai-chat-suggestions">
+        <div class="ai-chip" onclick="chatSend('action','Is this corrective action sufficient to prevent recurrence?')">Is this CA sufficient?</div>
+        <div class="ai-chip" onclick="chatSend('action','What industry standards apply to this type of nonconformance?')">Applicable standards?</div>
+        <div class="ai-chip" onclick="chatSend('action','Suggest preventive measures to stop this happening again')">Preventive measures</div>
+        <div class="ai-chip" onclick="chatSend('action','How should I communicate this to the customer?')">Customer communication</div>
+      </div>
+      <div class="ai-chat-input">
+        <input type="text" id="chat-action-input" placeholder="Ask AI anything about this report..." onkeydown="if(event.key==='Enter') chatSend('action')">
+        <button onclick="chatSend('action')">Send ➤</button>
       </div>
     </div>
   </div>
@@ -411,6 +449,25 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
         <svg id="fishbone-svg" viewBox="0 0 900 500" style="width:100%;min-width:600px;font-family:var(--font)"></svg>
       </div>
       <div id="fishbone-categories" style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px"></div>
+    </div>
+    <div class="ai-chat" style="margin-top:16px" id="chat-fishbone">
+      <div class="ai-chat-header">
+        <span>💬 Explore Root Causes with AI</span>
+        <span style="font-size:11px;opacity:0.7;font-weight:400">Dig deeper into any cause — ask follow-up questions</span>
+      </div>
+      <div class="ai-chat-messages" id="chat-fishbone-msgs">
+        <div class="ai-chat-msg ai">I can help you explore root causes in more depth. Generate the fishbone first, then ask me to dig deeper into any category or cause.</div>
+      </div>
+      <div class="ai-chat-suggestions">
+        <div class="ai-chip" onclick="chatSend('fishbone','Which of the root causes is most likely based on the problem description?')">Most likely cause?</div>
+        <div class="ai-chip" onclick="chatSend('fishbone','How do I investigate the Machine category further?')">Investigate Machine</div>
+        <div class="ai-chip" onclick="chatSend('fishbone','What evidence should I collect to confirm the root cause?')">Evidence to collect</div>
+        <div class="ai-chip" onclick="chatSend('fishbone','Can you suggest a 5-Why analysis for this problem?')">5-Why analysis</div>
+      </div>
+      <div class="ai-chat-input">
+        <input type="text" id="chat-fishbone-input" placeholder="Ask about any root cause..." onkeydown="if(event.key==='Enter') chatSend('fishbone')">
+        <button onclick="chatSend('fishbone')">Send ➤</button>
+      </div>
     </div>
   </div>
 
@@ -860,6 +917,10 @@ function resetForm(){
   var fb=document.getElementById('ai-fishbone-body'); if(fb) fb.textContent='Fill in the Problem Description first, then click Generate below.';
   var fd=document.getElementById('fishbone-diagram'); if(fd) fd.style.display='none';
   for(var n=1;n<=8;n++){ var de=document.getElementById('r-dist'+n); if(de) de.value=''; }
+  _chatHistory = { action:[], fishbone:[] };
+  // Reset chat UI
+  var ca=document.getElementById('chat-action-msgs'); if(ca) ca.innerHTML='<div class="ai-chat-msg ai">Hi! I can help you with corrective actions, root cause analysis, or anything about this report. What would you like to know?</div>';
+  var cf=document.getElementById('chat-fishbone-msgs'); if(cf) cf.innerHTML='<div class="ai-chat-msg ai">I can help you explore root causes in more depth. Generate the fishbone first, then ask me to dig deeper into any category or cause.</div>';
   ftab('order', document.querySelector('.ftab'));
 }
 
@@ -1204,11 +1265,107 @@ function aiDraftCA(){
   callAI('You are a quality manager at a PVC manufacturer. Draft a concise, professional corrective action summary (3-5 sentences) for this nonconformance. Problem: '+prob+(root?'. Root cause: '+root:''), 'ai-ca-body', function(t){ sv('r-casummary',t); });
 }
 
+function aiDraftJustification(){
+  var prob = gv('r-probdesc');
+  var root = gv('r-rootcause');
+  var ca   = gv('r-casummary');
+  if(!prob && !root && !ca){ toast('Fill in the Problem Description or Root Cause first.', true); return; }
+  var el = document.getElementById('ai-ca-body');
+  el.innerHTML = '<span class="spin"></span> Drafting justification...';
+  ftab('action', null);
+  var context = '';
+  if(prob) context += 'Problem: ' + prob + '. ';
+  if(root) context += 'Root cause: ' + root + '. ';
+  if(ca)   context += 'Corrective action taken: ' + ca + '. ';
+  callAI(
+    'You are a quality manager at a plastics compounding company. Write a clear, professional justification (3-4 sentences) explaining why the chosen corrective action is appropriate and sufficient to address the root cause and prevent recurrence. ' + context,
+    'ai-ca-body',
+    function(text){ sv('r-justification', text); toast('✓ Justification drafted — review and edit as needed.'); }
+  );
+}
+
 function aiDraftEmail(){
   var prob=gv('r-probdesc'), ca=gv('r-casummary'), cust=gv('r-customer');
   if(!prob){ toast('Fill in problem description first.',true); return; }
   document.getElementById('ai-ca-body').innerHTML='<span class="spin"></span> Drafting email...';
   callAI('Draft a professional, concise customer notification email for this nonconformance. Customer: '+(cust||'[Customer]')+'. Problem: '+prob+(ca?'. Corrective action: '+ca:''), 'ai-ca-body');
+}
+
+// ============ AI CHAT ============
+var _chatHistory = { action:[], fishbone:[] };
+
+function chatSend(panel, prefill){
+  var inputEl = document.getElementById('chat-'+panel+'-input');
+  var msgsEl  = document.getElementById('chat-'+panel+'-msgs');
+  var msg = prefill || (inputEl ? inputEl.value.trim() : '');
+  if(!msg) return;
+  if(inputEl) inputEl.value = '';
+
+  // Add user message
+  msgsEl.innerHTML += '<div class="ai-chat-msg user">'+escHtml(msg)+'</div>';
+  var thinkId = 'think-'+Date.now();
+  msgsEl.innerHTML += '<div class="ai-chat-msg ai" id="'+thinkId+'"><span class="spin"></span> Thinking...</div>';
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+
+  // Build report context
+  var prob = gv('r-probdesc')||'', root = gv('r-rootcause')||'', ca = gv('r-casummary')||'';
+  var cust = gv('r-customer')||'', prod = gv('r-product')||'';
+  var fbCtx = _lastFishboneData ? '\nFishbone categories: '+JSON.stringify(_lastFishboneData.categories) : '';
+  var sysPrompt = 'You are a quality engineering AI for Concord Compounding, a plastics compounding manufacturer. Report context:'
+    +(cust?'\n- Customer: '+cust:'')+(prod?'\n- Product: '+prod:'')
+    +(prob?'\n- Problem: '+prob:'')+(root?'\n- Root cause: '+root:'')
+    +(ca?'\n- Corrective action: '+ca:'')+fbCtx
+    +'\nBe concise, practical, specific to plastics manufacturing. Use bullet points where helpful.';
+
+  // Build messages with history
+  var history = _chatHistory[panel].slice(-8);
+  var messages = [{role:'system',content:sysPrompt}];
+  history.forEach(function(h){ messages.push(h); });
+  messages.push({role:'user',content:msg});
+  _chatHistory[panel].push({role:'user',content:msg});
+
+  callAIChat(messages, function(reply){
+    var el = document.getElementById(thinkId);
+    if(el) el.outerHTML = '<div class="ai-chat-msg ai">'+reply.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<b>$1</b>')+'</div>';
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+    _chatHistory[panel].push({role:'assistant',content:reply});
+  }, function(err){
+    var el = document.getElementById(thinkId);
+    if(el) el.outerHTML = '<div class="ai-chat-msg ai" style="color:var(--danger)">Error: '+escHtml(err)+'</div>';
+  });
+}
+
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function callAIChat(messages, onSuccess, onError){
+  if(!CFG.aiKey){
+    setTimeout(function(){ onSuccess('I\'m in demo mode. Connect a free AI in Settings → Step 4 to enable live chat!'); }, 800);
+    return;
+  }
+  try{
+    var resp, text;
+    if(CFG.aiModel==='groq'){
+      resp = await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+CFG.aiKey},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:messages,max_tokens:600,temperature:0.5})});
+      var d=await resp.json(); if(d.error) throw new Error(d.error.message);
+      text=d.choices&&d.choices[0]?d.choices[0].message.content:'No response.';
+    } else if(CFG.aiModel==='gemini'){
+      var combined=messages.map(function(m){return m.role.toUpperCase()+': '+m.content;}).join('\n\n');
+      resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+CFG.aiKey,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:combined}]}],generationConfig:{maxOutputTokens:600,temperature:0.5}})});
+      var d=await resp.json(); if(d.error) throw new Error(d.error.message);
+      text=d.candidates&&d.candidates[0]?d.candidates[0].content.parts.map(function(p){return p.text||'';}).join(''):'No response.';
+    } else if(CFG.aiModel==='claude'){
+      var sys=messages.find(function(m){return m.role==='system';})||{content:''};
+      var userMsgs=messages.filter(function(m){return m.role!=='system';});
+      resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':CFG.aiKey,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,system:sys.content,messages:userMsgs})});
+      var d=await resp.json(); if(d.error) throw new Error(d.error.message);
+      text=d.content&&d.content[0]?d.content[0].text:'No response.';
+    } else {
+      resp=await fetch(CFG.aiEp+'openai/deployments/'+CFG.aiDeploy+'/chat/completions?api-version=2024-02-01',{method:'POST',headers:{'Content-Type':'application/json','api-key':CFG.aiKey},body:JSON.stringify({messages:messages,max_tokens:600})});
+      var d=await resp.json(); if(d.error) throw new Error(d.error.message);
+      text=d.choices&&d.choices[0]?d.choices[0].message.content:'No response.';
+    }
+    onSuccess(text);
+  } catch(e){ onError(e.message); }
 }
 
 function aiAnalyze(){

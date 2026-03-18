@@ -171,6 +171,74 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
 <body>
 
 <div id="toast"></div>
+
+<!-- WELCOME SCREEN -->
+<div id="welcome-overlay" style="display:none;position:fixed;inset:0;background:rgba(10,20,40,0.7);z-index:3000;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:620px;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden">
+    <!-- Header -->
+    <div style="background:var(--brand);padding:28px 32px 24px">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px">
+        <div style="width:48px;height:48px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;flex-shrink:0">A</div>
+        <div>
+          <div style="font-size:22px;font-weight:700;color:#fff;letter-spacing:-0.5px">Welcome to ARTS 3.0</div>
+          <div style="font-size:13px;color:rgba(255,255,255,0.7);margin-top:2px">Action Request Tracking System — Concord Compounding</div>
+        </div>
+      </div>
+    </div>
+    <!-- Body -->
+    <div style="padding:24px 32px">
+      <div style="font-size:14px;font-weight:600;color:var(--brand);margin-bottom:16px">Here's how to get started:</div>
+      <!-- Steps -->
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px">
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">1</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)">Create a new report</div>
+            <div style="font-size:12px;color:var(--text-soft);margin-top:2px">Click <b>+ New Report</b> in the sidebar. Choose from CNC, CAR, PAR, SNC, or EIR. Fields change automatically based on report type.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">2</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)">Use AI to help you</div>
+            <div style="font-size:12px;color:var(--text-soft);margin-top:2px">On the <b>Fishbone</b> and <b>Corrective Action</b> tabs, AI can suggest root causes, draft corrective actions, and chat with you about the report.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">3</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)">Save and download</div>
+            <div style="font-size:12px;color:var(--text-soft);margin-top:2px">Click <b>💾 Save Report</b> at any time. When ready, go to the <b>Closure</b> tab to download a PDF or email the distribution list.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">4</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)">Your data stays in your browser</div>
+            <div style="font-size:12px;color:var(--text-soft);margin-top:2px">Reports are saved locally for now. Use <b>Settings → Export</b> to back up your data or share with colleagues. SharePoint sync coming soon.</div>
+          </div>
+        </div>
+      </div>
+      <!-- Quick tip -->
+      <div style="background:var(--brand-light);border:1px solid #c8d8f0;border-radius:var(--radius);padding:12px 14px;margin-bottom:20px;font-size:12px;color:var(--brand)">
+        💡 <b>Tip:</b> Your name will appear on reports. Enter it below so all your reports are properly attributed.
+      </div>
+      <!-- Name input -->
+      <div style="margin-bottom:20px">
+        <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:6px">Your Name</label>
+        <input type="text" id="welcome-name" placeholder="e.g. Jane Smith" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font);font-size:13px">
+      </div>
+      <!-- Buttons -->
+      <div style="display:flex;gap:10px;justify-content:space-between;align-items:center">
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-soft);cursor:pointer">
+          <input type="checkbox" id="welcome-dont-show" style="width:14px;height:14px">
+          Don't show this again
+        </label>
+        <button onclick="closeWelcome()" style="padding:10px 28px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer">Get Started →</button>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal">
     <div class="modal-title" id="modal-title">Confirm</div>
@@ -201,6 +269,7 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
   <div class="nav-item" onclick="nav('settings',this)"><span class="ni">⚙</span><span>Settings</span></div>
   <div class="sidebar-footer">
     <div id="user-display">Local User</div>
+    <div style="margin-top:6px"><span onclick="showWelcome()" style="cursor:pointer;opacity:0.6;font-size:11px;text-decoration:underline">❓ Help / Getting Started</span></div>
     <div>ARTS Ver 3.0</div>
   </div>
 </div>
@@ -1986,7 +2055,30 @@ window.addEventListener('DOMContentLoaded',function(){
     }
   } catch(e){}
   renderDash();
+
+  // Show welcome screen on first visit
+  var seen = ls('arts_welcome_seen');
+  if(!seen){
+    var wo = document.getElementById('welcome-overlay');
+    if(wo){ wo.style.display='flex'; }
+  }
 });
+
+function closeWelcome(){
+  var name = document.getElementById('welcome-name').value.trim();
+  if(name){
+    lsSet('arts_user', name);
+    document.getElementById('user-display').textContent = 'User: ' + name;
+  }
+  var dontShow = document.getElementById('welcome-dont-show').checked;
+  if(dontShow) lsSet('arts_welcome_seen','1');
+  document.getElementById('welcome-overlay').style.display='none';
+}
+
+function showWelcome(){
+  document.getElementById('welcome-overlay').style.display='flex';
+  document.getElementById('welcome-dont-show').checked=false;
+}
 </script>
 </body>
 </html>

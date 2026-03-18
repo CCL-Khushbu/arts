@@ -269,9 +269,9 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
   <div class="form-tabs">
     <div class="ftab active" onclick="ftab('order',this)">Order Info</div>
     <div class="ftab" onclick="ftab('problem',this)">Problem / Assignment</div>
+    <div class="ftab" onclick="ftab('fishbone',this)">🐟 Fishbone Analysis</div>
     <div class="ftab" onclick="ftab('action',this)">Corrective Action</div>
     <div class="ftab" onclick="ftab('effectiveness',this)">Effectiveness</div>
-    <div class="ftab" onclick="ftab('fishbone',this)">🐟 Fishbone Analysis</div>
     <div class="ftab" onclick="ftab('closure',this)">Closure</div>
   </div>
 
@@ -279,7 +279,7 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
   <div class="fpanel active card" id="fp-order">
     <div class="fgrid">
       <div class="fg"><label>Customer Name</label><input type="text" id="r-customer" placeholder="e.g. Northern Cables Inc"></div>
-      <div class="fg"><label>Product Stock Code</label><input type="text" id="r-product" placeholder="e.g. 67441-BLK"></div>
+      <div class="fg"><label>Product Stock Code <span style="font-size:11px;font-weight:400;color:var(--text-soft)">(7 digits)</span></label><input type="text" id="r-product" placeholder="e.g. 6744100" pattern="[0-9]{7}" maxlength="7" oninput="this.value=this.value.replace(/[^0-9]/g,'').substring(0,7)"></div>
       <div class="fg"><label>Product Description</label><input type="text" id="r-prodesc"></div>
       <div class="fg"><label>Order #</label><input type="text" id="r-order"></div>
       <div class="fg"><label>Lot #</label><input type="text" id="r-lot" value="NA"></div>
@@ -291,13 +291,13 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
       <div class="fg">
         <label>Container Type</label>
         <input type="text" id="r-container" list="container-options" placeholder="Select or type...">
-        <datalist id="container-options"><option>Hopper Truck</option><option>Bulk Bag</option><option>Gaylord</option><option>Box</option></datalist>
+        <datalist id="container-options"><option>Supersacs</option><option>Gaylords</option><option>Bulk Trucks</option></datalist>
       </div>
       <div class="fg"><label>Container #</label><input type="text" id="r-containernum" value="NA"></div>
       <div class="fg"><label>CSR</label><input type="text" id="r-csr" placeholder="Customer Service Rep"></div>
       <div class="fg"><label>TSE</label><input type="text" id="r-tse" placeholder="Technical Service Engineer"></div>
       <div class="fg"><label>Salesman</label><input type="text" id="r-salesman"></div>
-      <div class="fg"><label>Application Code</label><input type="text" id="r-appcode" placeholder="Enter application code"></div>
+      <div class="fg"><label>Application</label><input type="text" id="r-appcode" placeholder="e.g. Wire &amp; Cable, Pipe, Moulding..."></div>
       <div class="fg">
         <label>Product Rejected?</label>
         <input type="text" id="r-rejected" list="rejected-options" placeholder="Select or type...">
@@ -350,8 +350,8 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
       </div>
       <div class="fg"><label>Dept. Manager</label><input type="text" id="r-deptmgr"></div>
       <div class="fg full"><label>Summary of Corrective Action</label><textarea id="r-casummary" rows="6" placeholder="Describe what corrective action was taken..."></textarea></div>
-      <div class="fg"><label>Root Cause</label><input type="text" id="r-rootcause"></div>
-      <div class="fg"><label>Justification</label><input type="text" id="r-justification"></div>
+      <div class="fg full"><label>Root Cause</label><textarea id="r-rootcause" rows="4" placeholder="Describe the root cause in detail..."></textarea></div>
+      <div class="fg full"><label>Justification</label><textarea id="r-justification" rows="4" placeholder="Provide justification for the corrective action chosen..."></textarea></div>
       <div class="fg"><label>Dept. Mgr Accept Date</label><input type="date" id="r-mgracceptdate"></div>
       <div class="fg"><label>Implementation Date</label><input type="date" id="r-impldate"></div>
       <div class="fg"><label>Customer Notification Date</label><input type="date" id="r-custnotifydate"></div>
@@ -396,7 +396,7 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
   <div class="fpanel card" id="fp-fishbone">
     <div style="margin-bottom:14px">
       <div style="font-size:14px;font-weight:600;color:var(--brand);margin-bottom:4px">🐟 AI Fishbone (Ishikawa) Root Cause Analysis</div>
-      <div style="font-size:12px;color:var(--text-soft)">Based on your problem description, AI will generate a fishbone diagram identifying potential root causes across 6 categories.</div>
+      <div style="font-size:12px;color:var(--text-soft)">Based on your problem description, AI will generate a fishbone diagram identifying potential root causes across 6 categories. <span id="fishbone-ai-note" style="color:var(--warning);font-weight:500"></span></div>
     </div>
     <div class="ai-panel">
       <div class="ai-header"><div class="ai-dot"></div><div class="ai-label">AI Fishbone Analysis</div></div>
@@ -421,7 +421,19 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
       <div class="fg"><label>Closed By</label><input type="text" id="r-closedby"></div>
       <div class="fg"><label>Closed Date</label><input type="date" id="r-closeddate"></div>
       <div class="fg"><label>Acceptance Date</label><input type="date" id="r-acceptdate"></div>
-      <div class="fg full"><label>Close-Out Distribution List <span style="font-size:11px;font-weight:400;color:var(--text-soft)">(comma-separated names or emails)</span></label><input type="text" id="r-distlist" placeholder="e.g. haddonj, paramalingamt, poveyi, saleemm, lattab"></div>
+      <div class="fg full">
+        <label>Close-Out Distribution List</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
+          <div><input type="email" id="r-dist1" placeholder="Email 1" style="width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font);font-size:13px"></div>
+          <div><input type="email" id="r-dist2" placeholder="Email 2" style="width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font);font-size:13px"></div>
+          <div><input type="email" id="r-dist3" placeholder="Email 3" style="width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font);font-size:13px"></div>
+          <div><input type="email" id="r-dist4" placeholder="Email 4" style="width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font);font-size:13px"></div>
+          <div><input type="email" id="r-dist5" placeholder="Email 5" style="width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font);font-size:13px"></div>
+          <div><input type="email" id="r-dist6" placeholder="Email 6" style="width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font);font-size:13px"></div>
+          <div><input type="email" id="r-dist7" placeholder="Email 7" style="width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font);font-size:13px"></div>
+          <div><input type="email" id="r-dist8" placeholder="Email 8" style="width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font);font-size:13px"></div>
+        </div>
+      </div>
     </div>
     <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
       <button class="btn btn-primary" onclick="downloadPDF()">⬇ Download PDF Report</button>
@@ -826,6 +838,7 @@ function resetForm(){
   document.getElementById('ai-rc-panel').style.display='none';
   var fb=document.getElementById('ai-fishbone-body'); if(fb) fb.textContent='Fill in the Problem Description first, then click Generate below.';
   var fd=document.getElementById('fishbone-diagram'); if(fd) fd.style.display='none';
+  for(var n=1;n<=8;n++){ var de=document.getElementById('r-dist'+n); if(de) de.value=''; }
   ftab('order', document.querySelector('.ftab'));
 }
 
@@ -839,7 +852,7 @@ function ftab(id,el){
   document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));
   document.getElementById('fp-'+id).classList.add('active');
   if(el) el.classList.add('active');
-  else{ var map={order:0,problem:1,action:2,effectiveness:3,fishbone:4,closure:5}; var idx=map[id]; if(idx!==undefined) document.querySelectorAll('.ftab')[idx].classList.add('active'); }
+  else{ var map={order:0,problem:1,fishbone:2,action:3,effectiveness:4,closure:5}; var idx=map[id]; if(idx!==undefined) document.querySelectorAll('.ftab')[idx].classList.add('active'); }
 }
 
 function gv(id){ var e=document.getElementById(id); if(!e) return ''; return e.type==='checkbox' ? e.checked : e.value; }
@@ -864,14 +877,18 @@ function getForm(){
     mgraccepted:gv('r-mgraccepted'), sendtomgr:gv('r-sendtomgr'),
     evalparty:gv('r-evalparty'), effectiveness:gv('r-effectiveness'), evaldate:gv('r-evaldate'), indicator:gv('r-indicator'),
     closed:gv('r-closed'), closedby:gv('r-closedby'), closeddate:gv('r-closeddate'),
-    acceptdate:gv('r-acceptdate'), distlist:gv('r-distlist'),
+    acceptdate:gv('r-acceptdate'),
+    distlist:[1,2,3,4,5,6,7,8].map(function(n){ return gv('r-dist'+n); }).filter(Boolean).join(','),
     savedAt:new Date().toISOString(), savedBy:document.getElementById('user-display').textContent,
   };
 }
 
 function setForm(r){
-  Object.keys(r).forEach(k=>{ sv('r-'+k, r[k]); });
+  Object.keys(r).forEach(function(k){ sv('r-'+k, r[k]); });
   sv('rtype', r.type); sv('r-status', r.status);
+  // Spread distlist back to individual fields
+  var dists = (r.distlist||'').split(',').map(function(s){ return s.trim(); });
+  for(var n=1;n<=8;n++){ sv('r-dist'+n, dists[n-1]||''); }
 }
 
 var spToken = null;
@@ -935,7 +952,7 @@ function fillPrint(r){
   s('pr-custnotify', fDate(r.custnotifydate)); s('pr-evaldate', fDate(r.evaldate));
   s('pr-effectiveness', r.effectiveness); s('pr-indicator', r.indicator);
   s('pr-closedby', r.closedby); s('pr-closeddate', fDate(r.closeddate));
-  s('pr-finalstatus', r.status); s('pr-dist', r.distlist);
+  s('pr-finalstatus', r.status); s('pr-dist', r.distlist||'—');
 }
 
 function pdfById(id){ loadDB(); var r=DB.find(x=>x.id===id); if(r){ currentId=id; fillPrint(r); doDownloadPDF(id); } }
@@ -1048,12 +1065,14 @@ function renderInbox(){
 
 // ============ EMAIL ============
 function sendEmailDist(){
-  var dist=gv('r-distlist'); if(!dist){ toast('Add recipients to distribution list.',true); return; }
+  var recipients = [];
+  for(var n=1;n<=8;n++){ var v=gv('r-dist'+n); if(v) recipients.push(v.trim()); }
+  if(!recipients.length){ toast('Add at least one email to the distribution list.',true); return; }
   var id=gv('r-id')||'Report', cust=gv('r-customer');
   var subj=encodeURIComponent('ARTS Report: '+id+(cust?' — '+cust:''));
-  var body=encodeURIComponent('Please find action report '+id+' for your review.\n\nLog in to ARTS to view details and take required action.\n\nThis is an automated notification from ARTS 3.0.');
-  window.location.href='mailto:'+dist.split(',').map(s=>s.trim()).join(';')+'?subject='+subj+'&body='+body;
-  toast('Email client opened.');
+  var body=encodeURIComponent('Please find action report '+id+' for your review.\n\nLog in to ARTS to view details and take required action.\n\nThis is an automated notification from ARTS 3.0 — Concord Compounding.');
+  window.location.href='mailto:'+recipients.join(';')+'?subject='+subj+'&body='+body;
+  toast('Email client opened for '+recipients.length+' recipients.');
 }
 
 // ============ SHAREPOINT ============
@@ -1365,7 +1384,7 @@ async function aiFishbone(){
 
 function demoFishbone(prob){
   var p = prob.toLowerCase();
-  var isPowder  = p.includes('powder') || p.includes('instead') || p.includes('wrong material') || p.includes('wrong product') || p.includes('incorrect material');
+  var isPowder  = p.includes('powder') || p.includes('pellet') || p.includes('instead') || p.includes('wrong material') || p.includes('wrong product') || p.includes('incorrect material') || p.includes('ran ');
   var isMixup   = p.includes('wrong') || p.includes('incorrect') || p.includes('mix') || p.includes('swap') || p.includes('mislabel') || p.includes('instead');
   var isColor   = p.includes('color') || p.includes('colour') || p.includes('shade') || p.includes('pigment');
   var isContam  = p.includes('contam') || p.includes('foreign') || p.includes('particle') || p.includes('gel') || p.includes('speck') || p.includes('dirt');
@@ -1531,6 +1550,8 @@ window.addEventListener('DOMContentLoaded',function(){
   document.getElementById('company-display').textContent=CFG.company;
   document.getElementById('r-date').value=new Date().toISOString().split('T')[0];
   if(CFG.logo) document.getElementById('logo-icon').innerHTML='<img src="'+CFG.logo+'" style="width:32px;height:32px;object-fit:contain;border-radius:4px">';
+  var fbNote = document.getElementById('fishbone-ai-note');
+  if(fbNote) fbNote.textContent = CFG.aiKey ? '' : '⚡ Running in smart demo mode. Connect Claude API in Settings for fully dynamic AI analysis.';
   // Handle any MSAL redirect response silently on load (prevents popup flash)
   try{
     var msalLib = window.msalBrowser || window.msal;

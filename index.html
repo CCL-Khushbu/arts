@@ -1413,6 +1413,18 @@ function saveSettings(){
   document.getElementById('company-display').textContent = CFG.company;
   if(CFG.logo){ document.getElementById('logo-icon').innerHTML='<img src="'+CFG.logo+'" style="width:32px;height:32px;object-fit:contain;border-radius:4px">'; }
   _msalInstance = null;
+  // Refresh fishbone AI note
+  var fbNote = document.getElementById('fishbone-ai-note');
+  if(fbNote){
+    if(CFG.aiKey){
+      var modelNames = {groq:'Groq (Llama 3)', gemini:'Google Gemini', claude:'Claude', azure:'Azure OpenAI'};
+      fbNote.style.color = 'var(--success)';
+      fbNote.textContent = '✓ Live AI connected (' + (modelNames[CFG.aiModel]||CFG.aiModel) + ') — analysis is fully dynamic.';
+    } else {
+      fbNote.style.color = 'var(--warning)';
+      fbNote.textContent = '⚡ Running in smart demo mode. Go to Settings → Step 4 to connect free AI.';
+    }
+  }
   toast('✓ Settings saved!');
 }
 
@@ -1648,7 +1660,16 @@ window.addEventListener('DOMContentLoaded',function(){
   document.getElementById('r-date').value=new Date().toISOString().split('T')[0];
   if(CFG.logo) document.getElementById('logo-icon').innerHTML='<img src="'+CFG.logo+'" style="width:32px;height:32px;object-fit:contain;border-radius:4px">';
   var fbNote = document.getElementById('fishbone-ai-note');
-  if(fbNote) fbNote.textContent = CFG.aiKey ? '' : '⚡ Running in smart demo mode. Connect Claude API in Settings for fully dynamic AI analysis.';
+  if(fbNote){
+    if(CFG.aiKey){
+      var modelNames = {groq:'Groq (Llama 3)', gemini:'Google Gemini', claude:'Claude', azure:'Azure OpenAI'};
+      fbNote.style.color = 'var(--success)';
+      fbNote.textContent = '✓ Live AI connected (' + (modelNames[CFG.aiModel]||CFG.aiModel) + ') — analysis is fully dynamic.';
+    } else {
+      fbNote.style.color = 'var(--warning)';
+      fbNote.textContent = '⚡ Running in smart demo mode. Go to Settings → Step 4 to connect free AI.';
+    }
+  }
   // Handle any MSAL redirect response silently on load (prevents popup flash)
   try{
     var msalLib = window.msalBrowser || window.msal;

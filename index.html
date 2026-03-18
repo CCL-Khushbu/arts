@@ -1364,121 +1364,135 @@ async function aiFishbone(){
 }
 
 function demoFishbone(prob){
-  // Generate causes contextually based on keywords in problem description
   var p = prob.toLowerCase();
-  var isColor     = p.includes('color') || p.includes('colour') || p.includes('black') || p.includes('grey') || p.includes('white');
-  var isContam    = p.includes('contam') || p.includes('foreign') || p.includes('particle') || p.includes('pellet');
-  var isDimensional = p.includes('dimension') || p.includes('size') || p.includes('length') || p.includes('diameter');
-  var isProcessing = p.includes('process') || p.includes('melt') || p.includes('extrusion') || p.includes('mould');
+  var isPowder  = p.includes('powder') || p.includes('instead') || p.includes('wrong material') || p.includes('wrong product') || p.includes('incorrect material');
+  var isMixup   = p.includes('wrong') || p.includes('incorrect') || p.includes('mix') || p.includes('swap') || p.includes('mislabel') || p.includes('instead');
+  var isColor   = p.includes('color') || p.includes('colour') || p.includes('shade') || p.includes('pigment');
+  var isContam  = p.includes('contam') || p.includes('foreign') || p.includes('particle') || p.includes('gel') || p.includes('speck') || p.includes('dirt');
+  var isDim     = p.includes('dimension') || p.includes('size') || p.includes('length') || p.includes('diameter') || p.includes('thickness');
+  var isProc    = p.includes('process') || p.includes('melt') || p.includes('extrusion') || p.includes('flow') || p.includes('pressure') || p.includes('difficult');
 
-  var causes = {
-    People: isContam
-      ? ['Operator skipped purge step during changeover','Inadequate training on cross-contamination prevention','Fatigue during long shift reducing attention']
-      : isColor
-      ? ['Incorrect colorant measured by operator','Training gap on color matching procedure','Handoff communication error between shifts']
-      : ['Operator did not follow standard procedure','Insufficient training on quality checks','Shift changeover communication breakdown'],
-    Machine: isContam
-      ? ['Diverter valve malfunction during product changeover','Worn seals in transfer piping','Inadequate purge cycle between runs']
-      : isColor
-      ? ['Colorant dosing pump out of calibration','Mixer not fully cleaned between color runs','Sensor drift in colorant feed system']
-      : isDimensional
-      ? ['Die gap drifted out of spec','Puller speed inconsistency','Worn calibration tooling']
-      : ['Equipment not maintained to schedule','Sensor out of calibration','Mechanical wear causing inconsistency'],
-    Material: isContam
-      ? ['Residual material from previous run not purged','Incoming raw material mislabeled by supplier','Contaminated storage container or hopper']
-      : isColor
-      ? ['Wrong colorant batch used','Colorant moisture content out of spec','Supplier color formulation inconsistency']
-      : ['Raw material lot variation from supplier','Incorrect material loaded to hopper','Storage conditions degraded material'],
-    Method: isContam
-      ? ['No mandatory line inspection between product runs','Changeover SOP not enforced consistently','Lack of documented cleaning validation steps']
-      : ['Procedure not updated to reflect current process','No verification step before production start','Work instruction unclear or inaccessible'],
-    Measurement: [
-      'Sampling frequency insufficient to detect issue early',
-      'Lab result not reviewed before shipment release'
-    ],
-    Environment: isContam
-      ? ['Shared transfer lines between incompatible products','Airborne dust in compounding area']
-      : ['Temperature variation affecting product properties','Humidity impact on raw material storage']
-  };
-
-  var mostLikely = isContam
-    ? 'Automated diverter valve malfunction during product changeover allowed residual material to contaminate the current run.'
-    : isColor
-    ? 'Colorant dosing pump calibration drift caused incorrect colorant ratio in the final compound.'
-    : isDimensional
-    ? 'Die gap drift due to thermal expansion caused dimensional deviation outside specification.'
-    : 'Standard operating procedure was not followed consistently, leading to the observed nonconformance.';
-
-  return JSON.stringify({
-    effect: prob.substring(0,40),
-    categories: causes,
-    most_likely_cause: mostLikely
-  });
+  var c, ml;
+  if(isPowder || isMixup){
+    c = {
+      People:['Operator did not verify material form before loading','Work order misread — powder vs pellet not confirmed','No shift handover check on material type loaded'],
+      Machine:['Hopper not dedicated to pellet vs powder materials','No physical interlock preventing wrong material loading','Feeder settings not adjusted for material form'],
+      Material:['Powder and pellet products stored in adjacent areas','Similar product codes causing confusion at picking','Labels not clearly distinguishing material form'],
+      Method:['No mandatory material verification step in SOP','Changeover checklist missing material form check','Work order does not explicitly specify pellet vs powder'],
+      Measurement:['No inline material form check before production start','First-off sample check not performed'],
+      Environment:['Similar materials stored too close together in warehouse','Poor lighting in raw material storage area']
+    };
+    ml = 'Operator loaded powder material instead of pellets due to a missing material form verification step in the changeover procedure.';
+  } else if(isColor){
+    c = {
+      People:['Incorrect colorant measured by operator','Training gap on color matching procedure','Shift handoff error on color specification'],
+      Machine:['Colorant dosing pump out of calibration','Mixer not fully cleaned between color runs','Color sensor drift causing incorrect dosing'],
+      Material:['Wrong colorant batch loaded','Colorant moisture content out of spec','Supplier color formulation inconsistency'],
+      Method:['Color verification step missing from SOP','No mandatory first-off color check','Work instruction unclear on colorant sequence'],
+      Measurement:['Colorimeter not calibrated before shift','No color check at start of run'],
+      Environment:['Ambient light affecting visual color inspection','Temperature variation affecting colorant dispersion']
+    };
+    ml = 'Colorant dosing pump calibration drift caused incorrect colorant ratio resulting in color deviation from specification.';
+  } else if(isContam){
+    c = {
+      People:['Operator skipped purge step during changeover','Inadequate training on contamination prevention','Fatigue reducing attention to changeover steps'],
+      Machine:['Diverter valve malfunction during changeover','Worn seals in transfer piping','Inadequate purge cycle between product runs'],
+      Material:['Residual material from previous run not fully purged','Incoming raw material mislabeled by supplier','Contaminated storage container or hopper'],
+      Method:['No mandatory line inspection between runs','Changeover SOP not enforced consistently','Cleaning validation steps not documented'],
+      Measurement:['No contamination check before product release','Sampling frequency insufficient to detect issue early'],
+      Environment:['Shared transfer lines between incompatible products','Airborne dust in compounding area']
+    };
+    ml = 'Diverter valve malfunction during product changeover allowed residual material to contaminate the current run.';
+  } else if(isDim){
+    c = {
+      People:['Operator did not verify die gap after setup','Measurement technique inconsistent between operators','Setup approval step skipped'],
+      Machine:['Die gap drifted due to thermal expansion','Puller speed inconsistency','Worn calibration tooling'],
+      Material:['Raw material melt flow index variation','Moisture in material causing viscosity inconsistency','Regrind ratio inconsistency'],
+      Method:['Setup procedure does not require dimensional check','No SPC monitoring of critical dimensions','Tolerance not on work order'],
+      Measurement:['Gauge not calibrated — date expired','Measurement taken at wrong location'],
+      Environment:['Ambient temperature affecting shrinkage','Cooling water temperature fluctuation']
+    };
+    ml = 'Die gap drift due to thermal expansion during the run caused dimensions to deviate outside customer specification.';
+  } else if(isProc){
+    c = {
+      People:['Processing parameters not set per recipe','Operator adjusted settings without authorization','Recipe not updated after last material change'],
+      Machine:['Screw wear causing inconsistent melt pressure','Barrel temperature not reaching setpoint','Breaker plate partially blocked'],
+      Material:['Melt flow index of incoming lot different from standard','Moisture content above acceptable limit','Stabilizer pack variation between lots'],
+      Method:['Processing recipe not locked for editing','No verification after material lot change','No stability check period in startup procedure'],
+      Measurement:['Melt pressure sensor out of calibration','No real-time monitoring of key parameters'],
+      Environment:['Ambient humidity affecting hygroscopic materials','Power fluctuation causing temperature inconsistency']
+    };
+    ml = 'Processing parameters were not adjusted for the current raw material lot, causing processing difficulties.';
+  } else {
+    c = {
+      People:['Standard procedure not followed','Insufficient training on quality requirements','Shift handover communication breakdown'],
+      Machine:['Equipment not maintained per schedule','Instrument out of calibration','Mechanical wear causing inconsistency'],
+      Material:['Raw material lot variation from supplier','Incorrect material loaded — not verified','Storage conditions degraded material quality'],
+      Method:['Work instruction unclear or inaccessible','Verification step missing from procedure','SOP not updated for current process'],
+      Measurement:['Inspection frequency insufficient','Measuring instrument not fit for purpose'],
+      Environment:['Environmental conditions not monitored','Workspace organisation contributing to errors']
+    };
+    ml = 'Standard operating procedure was not consistently followed, leading to the observed nonconformance.';
+  }
+  return JSON.stringify({ effect:prob.substring(0,40), categories:c, most_likely_cause:ml });
 }
 
 function renderFishboneCards(data){
-  var cats = data.categories || {};
-  var catNames = Object.keys(cats);
-  var colors = ['#1a3a5c','#e05c1a','#1e7c45','#b06200','#6a3a8c','#1a6a7c'];
-  var effect = data.effect || 'Problem Effect';
+  var cats    = data.categories || {};
+  var names   = Object.keys(cats);
+  var colors  = ['#1a3a5c','#e05c1a','#1e7c45','#b06200','#6a3a8c','#1a6a7c'];
+  var effect  = (data.effect || 'Problem').substring(0,35);
 
-  // --- SVG Fishbone Diagram ---
-  var W=900, H=460, spineY=H/2, headX=W-60, tailX=80;
-  var topCats = catNames.filter((_,i)=>i%2===0);
-  var botCats = catNames.filter((_,i)=>i%2!==0);
-  var totalCols = Math.max(topCats.length, botCats.length);
-  var colW = (headX - tailX - 60) / (totalCols);
+  // ---- Clean card layout (no SVG overlap issues) ----
+  // Top row: even-indexed categories, Bottom row: odd-indexed
+  var topNames = names.filter(function(_,i){ return i%2===0; });
+  var botNames = names.filter(function(_,i){ return i%2!==0; });
 
-  var svg = '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;background:#f8f9fb;border-radius:8px;border:1px solid var(--border)" xmlns="http://www.w3.org/2000/svg">';
-
-  // Spine
-  svg += '<line x1="'+tailX+'" y1="'+spineY+'" x2="'+(headX-10)+'" y2="'+spineY+'" stroke="#1a3a5c" stroke-width="3"/>';
-  // Arrowhead
-  svg += '<polygon points="'+(headX)+','+(spineY)+' '+(headX-18)+','+(spineY-8)+' '+(headX-18)+','+(spineY+8)+'" fill="#1a3a5c"/>';
-  // Effect box
-  svg += '<rect x="'+(headX-10)+'" y="'+(spineY-24)+'" width="120" height="48" rx="6" fill="#1a3a5c"/>';
-  svg += '<text x="'+(headX+50)+'" y="'+(spineY+5)+'" text-anchor="middle" fill="white" font-size="12" font-weight="bold" font-family="DM Sans,sans-serif">'+effect.substring(0,20)+'</text>';
-
-  // Draw bones
-  catNames.forEach(function(cat, idx){
-    var isTop = idx % 2 === 0;
-    var col   = Math.floor(idx / 2);
-    var boneX = tailX + 60 + col * colW + colW * 0.5;
-    var boneY = isTop ? spineY - 110 : spineY + 110;
-    var color = colors[idx % colors.length];
-    var causes = cats[cat] || [];
-
-    // Main bone line from spine to category box
-    svg += '<line x1="'+boneX+'" y1="'+spineY+'" x2="'+boneX+'" y2="'+boneY+'" stroke="'+color+'" stroke-width="2" stroke-dasharray="4,2"/>';
-    svg += '<line x1="'+(boneX-1)+'" y1="'+spineY+'" x2="'+boneX+'" y2="'+spineY+'" stroke="'+color+'" stroke-width="3"/>';
-
-    // Category label box
-    var boxW=110, boxH=26;
-    svg += '<rect x="'+(boneX-boxW/2)+'" y="'+(isTop ? boneY-boxH : boneY)+'" width="'+boxW+'" height="'+boxH+'" rx="4" fill="'+color+'"/>';
-    svg += '<text x="'+boneX+'" y="'+(isTop ? boneY-boxH/2+5 : boneY+boxH/2+5)+'" text-anchor="middle" fill="white" font-size="11" font-weight="bold" font-family="DM Sans,sans-serif">'+cat+'</text>';
-
-    // Cause lines (sub-bones)
-    causes.slice(0,3).forEach(function(cause, ci){
-      var offset = (ci - 1) * 32;
-      var cx2 = boneX + offset;
-      var cy1 = isTop ? boneY + boxH + 4  : boneY - 4;
-      var cy2 = isTop ? spineY - 12       : spineY + 12;
-      svg += '<line x1="'+cx2+'" y1="'+cy1+'" x2="'+(boneX+offset*0.3)+'" y2="'+cy2+'" stroke="'+color+'" stroke-width="1.2" opacity="0.6"/>';
-      var textY = isTop ? cy1 - 4 : cy1 + 13;
-      var shortCause = cause.length > 22 ? cause.substring(0,22)+'…' : cause;
-      svg += '<text x="'+cx2+'" y="'+textY+'" text-anchor="middle" fill="#4a5568" font-size="9" font-family="DM Sans,sans-serif">'+shortCause+'</text>';
-    });
-  });
-
-  svg += '</svg>';
-  document.getElementById('fishbone-svg').outerHTML = svg.replace('<svg','<svg id="fishbone-svg"');
-
-  // --- Category cards below diagram ---
-  var html = catNames.map(function(cat,i){
+  // Build HTML-based fishbone (more reliable than SVG text positioning)
+  var topHTML = topNames.map(function(cat,i){
+    var idx = names.indexOf(cat);
+    var col = colors[idx % colors.length];
     var causes = cats[cat]||[];
-    return '<div style="background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:12px;border-top:3px solid '+colors[i%colors.length]+'">'
-      +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:'+colors[i%colors.length]+';margin-bottom:8px">'+cat+'</div>'
-      +causes.map(function(c){ return '<div style="font-size:12px;color:var(--text-mid);padding:3px 0;border-bottom:1px solid var(--neutral)">• '+c+'</div>'; }).join('')
+    return '<div style="flex:1;text-align:center;padding:0 6px">'
+      +'<div style="background:'+col+';color:#fff;font-size:11px;font-weight:700;padding:5px 8px;border-radius:5px;margin-bottom:6px">'+cat+'</div>'
+      +causes.map(function(c){ return '<div style="font-size:11px;color:#4a5568;background:#fff;border:1px solid #eee;border-left:3px solid '+col+';padding:4px 7px;margin-bottom:3px;border-radius:3px;text-align:left">'+c+'</div>'; }).join('')
+      +'<div style="width:2px;height:40px;background:'+col+';margin:4px auto 0;opacity:0.5"></div>'
+      +'</div>';
+  }).join('');
+
+  var botHTML = botNames.map(function(cat,i){
+    var idx = names.indexOf(cat);
+    var col = colors[idx % colors.length];
+    var causes = cats[cat]||[];
+    return '<div style="flex:1;text-align:center;padding:0 6px">'
+      +'<div style="width:2px;height:40px;background:'+col+';margin:0 auto 4px;opacity:0.5"></div>'
+      +causes.map(function(c){ return '<div style="font-size:11px;color:#4a5568;background:#fff;border:1px solid #eee;border-left:3px solid '+col+';padding:4px 7px;margin-bottom:3px;border-radius:3px;text-align:left">'+c+'</div>'; }).join('')
+      +'<div style="background:'+col+';color:#fff;font-size:11px;font-weight:700;padding:5px 8px;border-radius:5px;margin-top:6px">'+cat+'</div>'
+      +'</div>';
+  }).join('');
+
+  var diagramHTML =
+    '<div style="background:#f8f9fb;border:1px solid var(--border);border-radius:10px;padding:16px">'
+    // Top causes
+    +'<div style="display:flex;justify-content:space-around;align-items:flex-end;margin-bottom:0">'+topHTML+'</div>'
+    // Spine
+    +'<div style="display:flex;align-items:center;margin:0 0">'
+      +'<div style="flex:1;height:4px;background:linear-gradient(to right,#1a3a5c,#1a3a5c);border-radius:2px"></div>'
+      +'<div style="background:#1a3a5c;color:#fff;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:700;white-space:nowrap;max-width:200px;text-align:center;flex-shrink:0">⬅ '+effect+'</div>'
+    +'</div>'
+    // Bottom causes
+    +'<div style="display:flex;justify-content:space-around;align-items:flex-start;margin-top:0">'+botHTML+'</div>'
+    +'</div>';
+
+  document.getElementById('fishbone-svg').outerHTML = '<div id="fishbone-svg">'+diagramHTML+'</div>';
+
+  // Category detail cards
+  var html = names.map(function(cat,i){
+    var causes = cats[cat]||[];
+    var col = colors[i%colors.length];
+    return '<div style="background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:12px;border-top:3px solid '+col+'">'
+      +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:'+col+';margin-bottom:8px">'+cat+'</div>'
+      +causes.map(function(c){ return '<div style="font-size:12px;color:var(--text-mid);padding:4px 0;border-bottom:1px solid var(--neutral)">• '+c+'</div>'; }).join('')
       +'</div>';
   }).join('');
   document.getElementById('fishbone-categories').innerHTML = html;

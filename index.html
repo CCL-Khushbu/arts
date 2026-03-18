@@ -1250,7 +1250,7 @@ async function callAI(prompt, outId, cb){
       resp = await fetch('https://api.groq.com/openai/v1/chat/completions',{
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+CFG.aiKey},
-        body:JSON.stringify({model:'llama3-8b-8192',messages:[{role:'system',content:'You are a quality engineering AI for a plastics compounding manufacturing company. Be concise and practical.'},{role:'user',content:prompt}],max_tokens:600,temperature:0.4})
+        body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'system',content:'You are a quality engineering AI for a plastics compounding manufacturing company. Be concise and practical.'},{role:'user',content:prompt}],max_tokens:600,temperature:0.4})
       });
       var d=await resp.json();
       if(d.error) throw new Error(d.error.message);
@@ -1334,7 +1334,7 @@ async function testAI(){
       r = await fetch('https://api.groq.com/openai/v1/chat/completions',{
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+CFG.aiKey},
-        body:JSON.stringify({model:'llama3-8b-8192',messages:[{role:'user',content:'Say OK'}],max_tokens:5})
+        body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:'Say OK'}],max_tokens:5})
       });
       d=await r.json();
       if(d.error) throw new Error(d.error.message);
@@ -1441,7 +1441,7 @@ async function aiFishbone(){
         resp = await fetch('https://api.groq.com/openai/v1/chat/completions',{
           method:'POST',
           headers:{'Content-Type':'application/json','Authorization':'Bearer '+CFG.aiKey},
-          body:JSON.stringify({model:'llama3-8b-8192',messages:[{role:'system',content:'You are a quality engineering AI. Respond with pure JSON only, no markdown, no explanation.'},{role:'user',content:prompt}],max_tokens:800,temperature:0.3})
+          body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'system',content:'You are a quality engineering AI. Respond with pure JSON only, no markdown, no explanation.'},{role:'user',content:prompt}],max_tokens:800,temperature:0.3})
         });
         var d=await resp.json();
         if(d.error) throw new Error(d.error.message);

@@ -1219,6 +1219,21 @@ async function callAI(prompt, outId, cb){
 }
 
 function demoAI(p){
+  if(p.includes('fishbone')||p.includes('Ishikawa')){
+    var prob = gv('r-probdesc') || 'product nonconformance';
+    return JSON.stringify({
+      effect: prob.substring(0,50),
+      categories:{
+        People:['Operator not following changeover SOP','Insufficient training on contamination control','Fatigue during long shift affecting attention to detail'],
+        Machine:['Automated diverter valve malfunction','Worn seals in transfer piping allowing cross-contamination','Inadequate purge cycle between product runs'],
+        Material:['Incoming raw material mislabeled by supplier','Residual material from previous run not fully purged','Contaminated storage container'],
+        Method:['Changeover procedure not enforced consistently','No mandatory line inspection between runs','Lack of documented cleaning validation'],
+        Measurement:['No inline contamination detection sensor','Sampling frequency insufficient to catch issue early','Lab test results not reviewed before release'],
+        Environment:['Shared transfer lines between incompatible products','Dust or airborne particles in compounding area','Inadequate separation between storage areas']
+      },
+      most_likely_cause:'Automated diverter valve malfunction during product changeover allowed residual material to contaminate the next production run.'
+    });
+  }
   if(p.includes('root cause')||p.includes('nonconformance')){
     return '<b>Likely root causes to investigate:</b><br><br><b>1. Cross-contamination during product changeover</b> — residual material from a prior run in transfer piping or hoppers. Verify diverter valve positions and purge procedures.<br><br><b>2. Inadequate equipment cleaning</b> — review cleaning SOPs and validation records for the line. Check last cleanout log.<br><br><b>3. Supplier material mislabeling</b> — verify COA and receiving inspection records for the lot in question.';
   }
@@ -1229,9 +1244,9 @@ function demoAI(p){
     return '<b>Key insights:</b><br><br>• Contamination is the most frequent issue (40% of open reports) — a dedicated equipment audit is recommended.<br>• 3 reports involve the same product-plant combination — initiate a Preventive Action Report to address systemic risk.<br>• Average closure time has increased — set a 7-day review reminder for all Corrective Action Reports.';
   }
   if(p.includes('email')){
-    return 'Subject: Quality Notification — Action Report\n\nDear [Customer],\n\nThank you for bringing this matter to our attention. We have received and reviewed your complaint and are actively investigating the root cause. A corrective action has been initiated and our team will provide a formal response within 5 business days. We sincerely apologize for any inconvenience caused.\n\nBest regards,\nQuality Department';
+    return 'Subject: Quality Notification — Action Report\n\nDear [Customer],\n\nThank you for bringing this matter to our attention. We have received and reviewed your complaint and are actively investigating the root cause. A corrective action has been initiated and our team will provide a formal response within 5 business days. We sincerely apologize for any inconvenience caused.\n\nBest regards,\nQuality Department\nConcord Compounding';
   }
-  return 'AI features are ready. Configure your Azure OpenAI or Claude API key in <b>Settings</b> for live responses.';
+  return 'AI features are ready. Configure your Claude API key in <b>Settings → Step 4</b> for live AI responses tailored to your actual reports.';
 }
 
 async function testAI(){
@@ -1326,12 +1341,67 @@ async function aiFishbone(){
 
 function renderFishboneCards(data){
   var cats = data.categories || {};
+  var catNames = Object.keys(cats);
   var colors = ['#1a3a5c','#e05c1a','#1e7c45','#b06200','#6a3a8c','#1a6a7c'];
-  var html = Object.keys(cats).map((cat,i)=>{
+  var effect = data.effect || 'Problem Effect';
+
+  // --- SVG Fishbone Diagram ---
+  var W=900, H=460, spineY=H/2, headX=W-60, tailX=80;
+  var topCats = catNames.filter((_,i)=>i%2===0);
+  var botCats = catNames.filter((_,i)=>i%2!==0);
+  var totalCols = Math.max(topCats.length, botCats.length);
+  var colW = (headX - tailX - 60) / (totalCols);
+
+  var svg = '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;background:#f8f9fb;border-radius:8px;border:1px solid var(--border)" xmlns="http://www.w3.org/2000/svg">';
+
+  // Spine
+  svg += '<line x1="'+tailX+'" y1="'+spineY+'" x2="'+(headX-10)+'" y2="'+spineY+'" stroke="#1a3a5c" stroke-width="3"/>';
+  // Arrowhead
+  svg += '<polygon points="'+(headX)+','+(spineY)+' '+(headX-18)+','+(spineY-8)+' '+(headX-18)+','+(spineY+8)+'" fill="#1a3a5c"/>';
+  // Effect box
+  svg += '<rect x="'+(headX-10)+'" y="'+(spineY-24)+'" width="120" height="48" rx="6" fill="#1a3a5c"/>';
+  svg += '<text x="'+(headX+50)+'" y="'+(spineY+5)+'" text-anchor="middle" fill="white" font-size="12" font-weight="bold" font-family="DM Sans,sans-serif">'+effect.substring(0,20)+'</text>';
+
+  // Draw bones
+  catNames.forEach(function(cat, idx){
+    var isTop = idx % 2 === 0;
+    var col   = Math.floor(idx / 2);
+    var boneX = tailX + 60 + col * colW + colW * 0.5;
+    var boneY = isTop ? spineY - 110 : spineY + 110;
+    var color = colors[idx % colors.length];
+    var causes = cats[cat] || [];
+
+    // Main bone line from spine to category box
+    svg += '<line x1="'+boneX+'" y1="'+spineY+'" x2="'+boneX+'" y2="'+boneY+'" stroke="'+color+'" stroke-width="2" stroke-dasharray="4,2"/>';
+    svg += '<line x1="'+(boneX-1)+'" y1="'+spineY+'" x2="'+boneX+'" y2="'+spineY+'" stroke="'+color+'" stroke-width="3"/>';
+
+    // Category label box
+    var boxW=110, boxH=26;
+    svg += '<rect x="'+(boneX-boxW/2)+'" y="'+(isTop ? boneY-boxH : boneY)+'" width="'+boxW+'" height="'+boxH+'" rx="4" fill="'+color+'"/>';
+    svg += '<text x="'+boneX+'" y="'+(isTop ? boneY-boxH/2+5 : boneY+boxH/2+5)+'" text-anchor="middle" fill="white" font-size="11" font-weight="bold" font-family="DM Sans,sans-serif">'+cat+'</text>';
+
+    // Cause lines (sub-bones)
+    causes.slice(0,3).forEach(function(cause, ci){
+      var offset = (ci - 1) * 32;
+      var cx2 = boneX + offset;
+      var cy1 = isTop ? boneY + boxH + 4  : boneY - 4;
+      var cy2 = isTop ? spineY - 12       : spineY + 12;
+      svg += '<line x1="'+cx2+'" y1="'+cy1+'" x2="'+(boneX+offset*0.3)+'" y2="'+cy2+'" stroke="'+color+'" stroke-width="1.2" opacity="0.6"/>';
+      var textY = isTop ? cy1 - 4 : cy1 + 13;
+      var shortCause = cause.length > 22 ? cause.substring(0,22)+'…' : cause;
+      svg += '<text x="'+cx2+'" y="'+textY+'" text-anchor="middle" fill="#4a5568" font-size="9" font-family="DM Sans,sans-serif">'+shortCause+'</text>';
+    });
+  });
+
+  svg += '</svg>';
+  document.getElementById('fishbone-svg').outerHTML = svg.replace('<svg','<svg id="fishbone-svg"');
+
+  // --- Category cards below diagram ---
+  var html = catNames.map(function(cat,i){
     var causes = cats[cat]||[];
     return '<div style="background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:12px;border-top:3px solid '+colors[i%colors.length]+'">'
       +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:'+colors[i%colors.length]+';margin-bottom:8px">'+cat+'</div>'
-      +causes.map(c=>'<div style="font-size:12px;color:var(--text-mid);padding:3px 0;border-bottom:1px solid var(--neutral)">• '+c+'</div>').join('')
+      +causes.map(function(c){ return '<div style="font-size:12px;color:var(--text-mid);padding:3px 0;border-bottom:1px solid var(--neutral)">• '+c+'</div>'; }).join('')
       +'</div>';
   }).join('');
   document.getElementById('fishbone-categories').innerHTML = html;

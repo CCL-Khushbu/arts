@@ -8,6 +8,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://unpkg.com/@azure/msal-browser@3.10.0/lib/msal-browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
 :root {
   --brand:#1a3a5c; --brand-mid:#245080; --brand-light:#e8f0f8;
@@ -194,7 +196,7 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
           <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">1</div>
           <div>
             <div style="font-size:13px;font-weight:600;color:var(--text)">Create a new report</div>
-            <div style="font-size:12px;color:var(--text-soft);margin-top:2px">Click <b>+ New Report</b> in the sidebar. Choose from CNC, CAR, PAR, SNC, or EIR. Fields change automatically based on report type.</div>
+            <div style="font-size:12px;color:var(--text-soft);margin-top:2px">Click <b>+ New Report</b> in the sidebar. Choose from CNC, CAR, SNC, or EIR. Fields change automatically based on report type.</div>
           </div>
         </div>
         <div style="display:flex;gap:14px;align-items:flex-start">
@@ -264,6 +266,7 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
   <div class="nav-item" onclick="nav('inbox',this)"><span class="ni">📥</span><span>My Inbox</span><span class="nav-badge" id="nb-inbox" style="display:none">0</span></div>
   <div class="nav-section">Reports</div>
   <div class="nav-item" onclick="nav('new',this)"><span class="ni">＋</span><span>New Report</span></div>
+  <div class="nav-item" onclick="nav('history',this)"><span class="ni">📋</span><span>Reports History</span><span class="nav-badge" id="nb-history" style="display:none">0</span></div>
   <div class="nav-item" onclick="nav('search',this)"><span class="ni">🔍</span><span>Search / Export</span></div>
   <div class="nav-section">System</div>
   <div class="nav-item" onclick="nav('settings',this)"><span class="ni">⚙</span><span>Settings</span></div>
@@ -291,21 +294,60 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
 <!-- DASHBOARD -->
 <div class="page active" id="page-dashboard">
   <div id="config-banner" style="display:none">⚠ SharePoint not configured. Reports saved locally. Go to <b>Settings</b> to connect.</div>
+
+  <!-- METRIC CARDS -->
   <div class="metrics-grid">
     <div class="metric"><div class="metric-label">Open Reports</div><div class="metric-value mv-red" id="m-open">0</div><div class="metric-sub" id="m-overdue-sub">0 overdue</div></div>
     <div class="metric"><div class="metric-label">Pending Action</div><div class="metric-value mv-amber" id="m-pending">0</div><div class="metric-sub">awaiting dept. mgr</div></div>
     <div class="metric"><div class="metric-label">Closed This Month</div><div class="metric-value mv-green" id="m-closed">0</div><div class="metric-sub">this month</div></div>
     <div class="metric"><div class="metric-label">Total YTD</div><div class="metric-value mv-brand" id="m-ytd">0</div><div class="metric-sub" id="m-year">2026</div></div>
   </div>
+
+  <!-- CHARTS ROW 1 -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
+    <!-- Reports by Type -->
+    <div class="card" style="padding:16px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-soft);margin-bottom:12px">Reports by Type</div>
+      <div style="position:relative;height:180px"><canvas id="chart-type"></canvas></div>
+    </div>
+    <!-- Reports by Status -->
+    <div class="card" style="padding:16px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-soft);margin-bottom:12px">Reports by Status</div>
+      <div style="position:relative;height:180px"><canvas id="chart-status"></canvas></div>
+    </div>
+    <!-- Reports by Month -->
+    <div class="card" style="padding:16px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-soft);margin-bottom:12px">Reports by Month (YTD)</div>
+      <div style="position:relative;height:180px"><canvas id="chart-monthly"></canvas></div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW 2 -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+    <!-- Top Customers by NCRs -->
+    <div class="card" style="padding:16px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-soft);margin-bottom:12px">Top Customers / Suppliers by Reports</div>
+      <div style="position:relative;height:200px"><canvas id="chart-customer"></canvas></div>
+    </div>
+    <!-- Reports by Problem Category -->
+    <div class="card" style="padding:16px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-soft);margin-bottom:12px">Reports by Problem Category</div>
+      <div style="position:relative;height:200px"><canvas id="chart-category"></canvas></div>
+    </div>
+  </div>
+
+  <!-- AI INSIGHTS -->
   <div class="ai-panel">
     <div class="ai-header"><div class="ai-dot"></div><div class="ai-label">AI Pattern Insights</div></div>
     <div class="ai-body" id="dash-ai-body">Click "Analyze patterns" to scan your reports for trends and risks.</div>
     <div class="ai-chips">
       <div class="ai-chip" onclick="aiAnalyze()">✦ Analyze patterns</div>
       <div class="ai-chip" onclick="aiMgmtSummary()">✦ Management summary</div>
-      <div class="ai-chip" onclick="nav('new',null)">✦ New Preventive Action</div>
+      <div class="ai-chip" onclick="currentId=null;nav('new',null)">✦ Start New CAR</div>
     </div>
   </div>
+
+  <!-- RECENT REPORTS TABLE -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
     <div style="font-size:14px;font-weight:600">Recent Reports</div>
     <div style="display:flex;gap:8px">
@@ -313,7 +355,7 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
         <option value="">All Statuses</option><option>Open</option><option>Pending</option><option>Closed</option><option>Overdue</option>
       </select>
       <select id="filter-type" onchange="renderTable()" style="padding:5px 9px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-family:var(--font)">
-        <option value="">All Types</option><option>CNC</option><option>CAR</option><option>PAR</option><option>SNC</option><option>EIR</option>
+        <option value="">All Types</option><option>CNC</option><option>CAR</option><option>SNC</option><option>EIR</option>
       </select>
     </div>
   </div>
@@ -332,7 +374,6 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
           <option value="">— Select Type —</option>
           <option value="CNC">Customer Nonconformance (CNC)</option>
           <option value="CAR">Corrective Action Report (CAR)</option>
-          <option value="PAR">Preventive Action Report (PAR)</option>
           <option value="SNC">Supplier Nonconformance (SNC)</option>
           <option value="EIR">Emergency Incident Report (EIR)</option>
         </select>
@@ -662,7 +703,8 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
       </div>
     </div>
     <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
-      <button class="btn btn-primary" onclick="downloadPDF()">⬇ Download PDF Report</button>
+      <button class="btn btn-primary" onclick="downloadPDF()">⬇ Download PDF</button>
+      <button class="btn btn-primary" style="background:var(--success);border-color:var(--success)" onclick="downloadExcel()">⬇ Download Excel</button>
       <button class="btn" onclick="printReport()">🖨 Print Report</button>
       <button class="btn" onclick="sendEmailDist()">📧 Email Distribution</button>
     </div>
@@ -677,13 +719,77 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:#f0f2f5
   </div>
 </div>
 
-<!-- SEARCH -->
-<div class="page" id="page-search">
+<!-- HISTORY -->
+<div class="page" id="page-history">
+
+  <!-- Filter bar -->
+  <div class="card" style="margin-bottom:14px;padding:14px 18px">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+      <div class="fg" style="margin:0;flex:2;min-width:160px">
+        <label style="font-size:11px;font-weight:600;color:var(--text-soft)">Search</label>
+        <input type="text" id="h-search" placeholder="Customer, product, description, report ID..." oninput="renderHistory()" style="padding:7px 11px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font);font-size:13px;width:100%">
+      </div>
+      <div class="fg" style="margin:0;min-width:120px">
+        <label style="font-size:11px;font-weight:600;color:var(--text-soft)">Type</label>
+        <select id="h-type" onchange="renderHistory()" style="padding:7px 11px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font);font-size:13px;width:100%">
+          <option value="">All Types</option>
+          <option value="CNC">CNC — Customer NCR</option>
+          <option value="SNC">SNC — Supplier NCR</option>
+          <option value="CAR">CAR — Corrective Action</option>
+          
+          <option value="EIR">EIR — Emergency Incident</option>
+        </select>
+      </div>
+      <div class="fg" style="margin:0;min-width:120px">
+        <label style="font-size:11px;font-weight:600;color:var(--text-soft)">Status</label>
+        <select id="h-status" onchange="renderHistory()" style="padding:7px 11px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font);font-size:13px;width:100%">
+          <option value="">All Statuses</option>
+          <option>Open</option><option>Pending</option><option>Closed</option><option>Overdue</option>
+        </select>
+      </div>
+      <div class="fg" style="margin:0;min-width:110px">
+        <label style="font-size:11px;font-weight:600;color:var(--text-soft)">From</label>
+        <input type="date" id="h-from" onchange="renderHistory()" style="padding:7px 11px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font);font-size:13px;width:100%">
+      </div>
+      <div class="fg" style="margin:0;min-width:110px">
+        <label style="font-size:11px;font-weight:600;color:var(--text-soft)">To</label>
+        <input type="date" id="h-to" onchange="renderHistory()" style="padding:7px 11px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font);font-size:13px;width:100%">
+      </div>
+      <button class="btn btn-sm" onclick="clearHistoryFilters()" style="height:34px">✕ Clear</button>
+      <button class="btn btn-sm" onclick="exportCSV()" style="height:34px">⬇ CSV</button>
+    </div>
+    <!-- Summary chips -->
+    <div id="h-summary" style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"></div>
+  </div>
+
+  <!-- Table -->
+  <div class="tbl-wrap">
+    <table class="data-table" id="history-table">
+      <thead>
+        <tr>
+          <th style="cursor:pointer" onclick="sortHistory('id')">Report ID ↕</th>
+          <th>Type</th>
+          <th style="cursor:pointer" onclick="sortHistory('customer')">Customer / Party ↕</th>
+          <th>Product</th>
+          <th>Problem Description</th>
+          <th style="cursor:pointer" onclick="sortHistory('status')">Status ↕</th>
+          <th style="cursor:pointer" onclick="sortHistory('date')">Date ↕</th>
+          <th>Saved By</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="history-tbody">
+        <tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text-soft)">No reports yet.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div id="h-pagination" style="display:flex;gap:8px;justify-content:center;margin-top:14px;align-items:center"></div>
+</div>
   <div class="card">
     <div class="card-title">Search &amp; Filter</div>
     <div class="fgrid3">
       <div class="fg"><label>Keyword</label><input type="text" id="s-kw" placeholder="Customer, product, description..."></div>
-      <div class="fg"><label>Type</label><select id="s-type"><option value="">All Types</option><option value="CNC">CNC</option><option value="CAR">CAR</option><option value="PAR">PAR</option><option value="SNC">SNC</option><option value="EIR">EIR</option></select></div>
+      <div class="fg"><label>Type</label><select id="s-type"><option value="">All Types</option><option value="CNC">CNC</option><option value="CAR">CAR</option><option value="SNC">SNC</option><option value="EIR">EIR</option></select></div>
       <div class="fg"><label>Status</label><select id="s-status"><option value="">All</option><option>Open</option><option>Pending</option><option>Closed</option><option>Overdue</option></select></div>
       <div class="fg"><label>Date From</label><input type="date" id="s-from"></div>
       <div class="fg"><label>Date To</label><input type="date" id="s-to"></div>
@@ -998,6 +1104,7 @@ function genId(type){
 var pageMeta = {
   dashboard:{title:'Dashboard',sub:'Overview of all action requests'},
   new:{title:'New Report',sub:'Create a new action request'},
+  history:{title:'Reports History',sub:'Browse, filter and open all past reports'},
   search:{title:'Search / Export',sub:'Find and export reports'},
   inbox:{title:'My Inbox',sub:'Pending items assigned to you'},
   settings:{title:'Settings',sub:'Configure SharePoint, AI, and branding'},
@@ -1037,6 +1144,8 @@ function renderDash(){
   document.getElementById('nb-open').textContent   = open+ovrd;
   document.getElementById('config-banner').style.display = CFG.spSite ? 'none' : 'flex';
   renderTable();
+  // Render charts after a short delay to ensure canvas elements are visible
+  setTimeout(function(){ renderCharts(DB); }, 100);
 }
 
 function renderTable(){
@@ -1292,7 +1401,168 @@ function printReport(){
   setTimeout(()=>{ w.focus(); w.print(); }, 400);
 }
 
-// ============ SEARCH ============
+// ============ CHARTS ============
+var _charts = {};
+
+function destroyChart(id){
+  if(_charts[id]){ _charts[id].destroy(); delete _charts[id]; }
+}
+
+function renderCharts(data){
+  if(typeof Chart === 'undefined') return;
+
+  var COLORS = ['#1a3a5c','#e05c1a','#1e7c45','#b06200','#6a3a8c','#1a6a7c','#a03030','#2a6a40'];
+  var LIGHT_COLORS = COLORS.map(function(c){ return c+'33'; });
+
+  // ---- Chart 1: Reports by Type (Doughnut) ----
+  var typeCounts = {};
+  data.forEach(function(r){ typeCounts[r.type] = (typeCounts[r.type]||0)+1; });
+  var typeLabels = Object.keys(typeCounts);
+  var typeVals   = typeLabels.map(function(k){ return typeCounts[k]; });
+  var typeNames  = {CNC:'Cust NCR',CAR:'Corr. Action',SNC:'Supplier NCR',EIR:'Emerg. Incident'};
+  destroyChart('type');
+  var ctx1 = document.getElementById('chart-type');
+  if(ctx1){
+    if(!typeLabels.length){ ctx1.parentElement.innerHTML='<div style="height:180px;display:flex;align-items:center;justify-content:center;color:var(--text-soft);font-size:12px">No data yet</div>'; }
+    else {
+      _charts['type'] = new Chart(ctx1, { type:'doughnut', data:{ labels:typeLabels.map(function(l){return typeNames[l]||l;}), datasets:[{data:typeVals, backgroundColor:COLORS.slice(0,typeVals.length), borderWidth:2, borderColor:'#fff'}] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom', labels:{font:{size:11},padding:8}} } } });
+    }
+  }
+
+  // ---- Chart 2: Reports by Status (Doughnut) ----
+  var statusCounts = {Open:0,Pending:0,Closed:0,Overdue:0};
+  data.forEach(function(r){ if(statusCounts[r.status]!==undefined) statusCounts[r.status]++; else statusCounts[r.status]=(statusCounts[r.status]||0)+1; });
+  var statusLabels = Object.keys(statusCounts).filter(function(k){return statusCounts[k]>0;});
+  var statusVals   = statusLabels.map(function(k){return statusCounts[k];});
+  var statusColors = {'Open':'#1a5ea8','Pending':'#b06200','Closed':'#1e7c45','Overdue':'#b52020'};
+  destroyChart('status');
+  var ctx2 = document.getElementById('chart-status');
+  if(ctx2){
+    if(!statusLabels.length){ ctx2.parentElement.innerHTML='<div style="height:180px;display:flex;align-items:center;justify-content:center;color:var(--text-soft);font-size:12px">No data yet</div>'; }
+    else {
+      _charts['status'] = new Chart(ctx2, { type:'doughnut', data:{ labels:statusLabels, datasets:[{data:statusVals, backgroundColor:statusLabels.map(function(s){return statusColors[s]||'#888';}), borderWidth:2, borderColor:'#fff'}] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom', labels:{font:{size:11},padding:8}} } } });
+    }
+  }
+
+  // ---- Chart 3: Reports by Month (Bar) ----
+  var now = new Date();
+  var months = [];
+  var monthCounts = {};
+  for(var i=11;i>=0;i--){
+    var d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    var key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    var label = d.toLocaleDateString('en-CA',{month:'short',year:'2-digit'});
+    months.push({key:key,label:label});
+    monthCounts[key] = 0;
+  }
+  data.forEach(function(r){ if(r.date){ var k=r.date.substring(0,7); if(monthCounts[k]!==undefined) monthCounts[k]++; } });
+  destroyChart('monthly');
+  var ctx3 = document.getElementById('chart-monthly');
+  if(ctx3){
+    _charts['monthly'] = new Chart(ctx3, { type:'bar', data:{ labels:months.map(function(m){return m.label;}), datasets:[{label:'Reports', data:months.map(function(m){return monthCounts[m.key];}), backgroundColor:'#1a3a5c99', borderColor:'#1a3a5c', borderWidth:1, borderRadius:3}] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, ticks:{stepSize:1,font:{size:10}}, grid:{color:'#f0f2f5'}}, x:{ticks:{font:{size:10}}, grid:{display:false}} } } });
+  }
+
+  // ---- Chart 4: Top Customers / Suppliers (Horizontal Bar) ----
+  var custCounts = {};
+  data.forEach(function(r){
+    var name = r.customer || r.supplier || 'Unknown';
+    if(name && name!=='Unknown') custCounts[name] = (custCounts[name]||0)+1;
+  });
+  var custSorted = Object.entries(custCounts).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
+  destroyChart('customer');
+  var ctx4 = document.getElementById('chart-customer');
+  if(ctx4){
+    if(!custSorted.length){ ctx4.parentElement.innerHTML='<div style="height:200px;display:flex;align-items:center;justify-content:center;color:var(--text-soft);font-size:12px">No customer/supplier data yet</div>'; }
+    else {
+      _charts['customer'] = new Chart(ctx4, { type:'bar', data:{ labels:custSorted.map(function(c){return c[0];}), datasets:[{label:'Reports', data:custSorted.map(function(c){return c[1];}), backgroundColor:COLORS.slice(0,custSorted.length).map(function(c){return c+'bb';}), borderColor:COLORS.slice(0,custSorted.length), borderWidth:1, borderRadius:3}] }, options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{beginAtZero:true,ticks:{stepSize:1,font:{size:10}},grid:{color:'#f0f2f5'}}, y:{ticks:{font:{size:11}},grid:{display:false}} } } });
+    }
+  }
+
+  // ---- Chart 5: Reports by Problem Category (Bar) ----
+  var catCounts = {};
+  data.forEach(function(r){ var c=r.probcat||'Uncategorised'; catCounts[c]=(catCounts[c]||0)+1; });
+  var catSorted = Object.entries(catCounts).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
+  destroyChart('category');
+  var ctx5 = document.getElementById('chart-category');
+  if(ctx5){
+    if(!catSorted.length){ ctx5.parentElement.innerHTML='<div style="height:200px;display:flex;align-items:center;justify-content:center;color:var(--text-soft);font-size:12px">No category data yet</div>'; }
+    else {
+      _charts['category'] = new Chart(ctx5, { type:'bar', data:{ labels:catSorted.map(function(c){return c[0];}), datasets:[{label:'Reports', data:catSorted.map(function(c){return c[1];}), backgroundColor:['#e05c1a','#1a3a5c','#1e7c45','#b06200','#6a3a8c','#1a6a7c','#a03030','#2a6a40'].map(function(c){return c+'bb';}), borderWidth:1, borderRadius:3}] }, options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{beginAtZero:true,ticks:{stepSize:1,font:{size:10}},grid:{color:'#f0f2f5'}}, y:{ticks:{font:{size:11}},grid:{display:false}} } } });
+    }
+  }
+}
+
+// ============ EXCEL DOWNLOAD ============
+function downloadExcel(){
+  var r = currentId ? (loadDB(), DB.find(function(x){return x.id===currentId;})) : getForm();
+  if(!r||!r.type){ toast('Please save the report first.',true); return; }
+  if(typeof XLSX === 'undefined'){ toast('Excel library not loaded yet. Try again in a moment.',true); return; }
+
+  var rtype = {CNC:'Customer Nonconformance Report',CAR:'Corrective Action Report',SNC:'Supplier Nonconformance Report',EIR:'Emergency Incident Report'};
+
+  // Build worksheet data as array of [label, value] rows
+  var rows = [
+    [rtype[r.type]||'Action Report', ''],
+    ['Report ID', r.id||''],
+    ['Status', r.status||''],
+    ['Date', r.date||''],
+    [''],
+    ['SECTION 1 — REPORTING', ''],
+    ['Received By', r.receivedby||''],
+    ['Phone', r.phone||''],
+    ['Customer / Party', r.customer||r.supplier||''],
+    ['Product Stock Code', r.product||''],
+    ['Product Description', r.prodesc||''],
+    ['Order #', r.order||r.supplierpo||''],
+    ['Lot #', r.lot||r.supplierlot||''],
+    ['Qty', r.qty||r.qtyreceived||''],
+    ['Ship / Receive Date', r.shipdate||r.datereceived||''],
+    ['Container Type', r.container||''],
+    ['CSR', r.csr||''],
+    ['TSE', r.tse||''],
+    ['Salesman', r.salesman||''],
+    ['Application', r.appcode||''],
+    ['Product Rejected?', r.rejected||''],
+    [''],
+    ['SECTION 2 — PROBLEM & CONCLUSIONS', ''],
+    ['Problem Description', r.probdesc||''],
+    ['Problem Category', r.probcat||''],
+    ['Assigned To', r.assignedname||''],
+    ['Department', r.dept||''],
+    ['Root Cause', r.rootcause||''],
+    ['Corrective Action Party', r.caparty||''],
+    ['Summary of Corrective Action', r.casummary||''],
+    ['Justification', r.justification||''],
+    ['Dept. Manager', r.deptmgr||''],
+    ['Acceptance Date', r.acceptdate||''],
+    ['Implementation Date', r.impldate||''],
+    ['Customer Notification Date', r.custnotifydate||''],
+    [''],
+    ['SECTION 3 — EFFECTIVENESS', ''],
+    ['Evaluation Party', r.evalparty||''],
+    ['Effectiveness', r.effectiveness||''],
+    ['Evaluation Date', r.evaldate||''],
+    ['Measuring Indicator', r.indicator||''],
+    [''],
+    ['SECTION 4 — CLOSURE', ''],
+    ['Closed By', r.closedby||''],
+    ['Closed Date', r.closeddate||''],
+    ['Final Status', r.status||''],
+    ['Distribution List', r.distlist||''],
+    [''],
+    ['Generated', new Date().toLocaleString()],
+    ['Generated By', document.getElementById('user-display').textContent],
+    ['Company', CFG.company],
+  ];
+
+  var ws = XLSX.utils.aoa_to_sheet(rows);
+  // Style column widths
+  ws['!cols'] = [{wch:32},{wch:60}];
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Report');
+  XLSX.writeFile(wb, (r.id||'report')+'.xlsx');
+  toast('Excel downloaded: '+(r.id||'report')+'.xlsx');
+}
 function doSearch(){
   loadDB();
   var kw=document.getElementById('s-kw').value.toLowerCase();
